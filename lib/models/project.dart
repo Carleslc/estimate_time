@@ -12,17 +12,21 @@ class Project {
   late int colorValue; // ARGB
 
   @ignore
-  Color get color => Color(colorValue);
+  Color _color = Colors.blue;
+
+  @ignore
+  Color _labelColor = Colors.white;
+
+  @ignore
+  Color get color => _color;
 
   set color(Color color) {
     this.colorValue = color.value;
+    _color = color;
+    _labelColor =
+        _color.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
   }
 
-  // TODO: La función computeLuminance es costosa, estaría bien calcularla solo
-  // cuando cambie el colorValue, y no siempre que se llama a labelColor.
-  // Lo mismo se puede hacer con el getter color.
-  // colorValue debe poderse asignar para que el código siga funcionando con Isar
   @ignore
-  Color get labelColor =>
-      color.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
+  Color get labelColor => _labelColor;
 }

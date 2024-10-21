@@ -39,11 +39,12 @@ class ProjectDetailsScreen extends StatelessWidget {
             message: 'Eliminar',
             child: IconButton(
               icon: Icon(Icons.delete),
+              // FIXME: El proyecto no se elimina estando en otra pantalla que no sea proyectos. Es decir,
+              // si desde active_tasks por ejemplo entramos en los detalles de una tarea y se hace click en su etiqueta de proyecto para ir a la pantalla del proyecto,
+              // si luego desde project_details se elimina el proyecto con su acción de la AppBar, al volver a la pantalla de proyectos con navigateToPage, el proyecto sigue allí sin borrarse
               onPressed: () async {
-                // FIXME: aquí es donde no se elimina bien el proyecto y se duplica al restaurarlo en algunas ocasiones,
-                // está igualmente comentado en project_provider.dart restoreProject
                 await projectProvider.deleteProject(context, project);
-                NavigationProvider.navigateToIndex(context, 1); // Projects
+                NavigationProvider.navigateToPage(context, AppPage.projects);
               },
             ),
           ),

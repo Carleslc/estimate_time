@@ -18,125 +18,134 @@ class ArchivedTasksScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Tareas archivadas'),
           ),
-          body: ListView.builder(
-            itemCount: archivedTasks.length,
-            itemBuilder: (_, index) {
-              final Task task = archivedTasks[index];
+          body: archivedTasks.isEmpty
+              ? Center(child: const Text('No hay tareas archivadas'))
+              : ListView.separated(
+                  itemCount: archivedTasks.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (_, index) {
+                    final Task task = archivedTasks[index];
 
-              return Dismissible(
-                key: Key(task.id.toString()),
-                direction: DismissDirection.horizontal,
-                onDismissed: (direction) {
-                  if (direction == DismissDirection.startToEnd) {
-                    // Deslizar de izquierda a derecha para eliminar
-                    taskProvider.deleteTask(context, task);
-                  } else if (direction == DismissDirection.endToStart) {
-                    // Deslizar de derecha a izquierda para desarchivar
-                    taskProvider.unarchiveTask(context, task);
-                  }
-                },
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerLeft,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(Icons.delete, color: Colors.white),
-                ),
-                secondaryBackground: Container(
-                  color: Colors.green,
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(Icons.unarchive, color: Colors.white),
-                ),
-                child: ListTile(
-                  // Título
-                  title: Row(
-                    children: [
-                      // Proyecto (etiqueta)
-                      FutureBuilder<Project?>(
-                        future: task.getProject(),
-                        builder: (_, snapshot) {
-                          if (snapshot.hasData && snapshot.data != null) {
-                            final project = snapshot.data!;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Chip(
-                                label: Text(
-                                  project.name,
-                                  style: TextStyle(
-                                    color: project.labelColor,
-                                    fontSize: 12,
-                                  ),
+                    return Dismissible(
+                      key: Key(task.id.toString()),
+                      direction: DismissDirection.horizontal,
+                      onDismissed: (direction) {
+                        if (direction == DismissDirection.startToEnd) {
+                          // Deslizar de izquierda a derecha para eliminar
+                          taskProvider.deleteTask(context, task);
+                        } else if (direction == DismissDirection.endToStart) {
+                          // Deslizar de derecha a izquierda para desarchivar
+                          taskProvider.unarchiveTask(context, task);
+                        }
+                      },
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerLeft,
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Icon(Icons.delete, color: Colors.white),
+                      ),
+                      secondaryBackground: Container(
+                        color: Colors.green,
+                        alignment: Alignment.centerRight,
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Icon(Icons.unarchive, color: Colors.white),
+                      ),
+                      child: ListTile(
+                        // Título
+                        title: Row(
+                          children: [
+                            // Proyecto (etiqueta)
+                            FutureBuilder<Project?>(
+                              future: task.getProject(),
+                              builder: (_, snapshot) {
+                                if (snapshot.hasData && snapshot.data != null) {
+                                  final project = snapshot.data!;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Chip(
+                                      label: Text(
+                                        project.name,
+                                        style: TextStyle(
+                                          color: project.labelColor,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      backgroundColor: project.color,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: -4,
+                                      ),
+                                      visualDensity: VisualDensity(
+                                        horizontal: -3,
+                                        vertical: -3,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return SizedBox.shrink();
+                              },
+                            ),
+                            // Título
+                            Expanded(
+                              child: Text(
+                                task.title,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                backgroundColor: project.color,
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: -4),
-                                visualDensity:
-                                    VisualDensity(horizontal: -3, vertical: -3),
                               ),
-                            );
-                          }
-                          return SizedBox.shrink();
+                            ),
+                          ],
+                        ),
+                        // Tiempo
+                        subtitle: Text(
+                          task.todayTime.formatTime(),
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        // Desarchivar / Copiar
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Tooltip(
+                              message: 'Desarchivar',
+                              child: IconButton(
+                                icon: const Icon(Icons.unarchive),
+                                style: IconButton.styleFrom(
+                                  iconSize: 28,
+                                ),
+                                onPressed: () {
+                                  taskProvider.unarchiveTask(context, task);
+                                },
+                              ),
+                            ),
+                            Tooltip(
+                              message: 'Copiar',
+                              child: IconButton(
+                                icon: const Icon(Icons.copy),
+                                color: Colors.blue.shade800,
+                                style: IconButton.styleFrom(
+                                  iconSize: 28,
+                                ),
+                                onPressed: () {
+                                  taskProvider.copyTask(context, task);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Detalles
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TaskDetailsScreen(task: task),
+                            ),
+                          );
                         },
-                      ),
-                      // Título
-                      Text(
-                        task.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Tiempo
-                  subtitle: Text(
-                    task.todayTime.formatTime(),
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  // Desarchivar
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Tooltip(
-                        message: 'Desarchivar',
-                        child: IconButton(
-                          icon: const Icon(Icons.unarchive),
-                          style: IconButton.styleFrom(
-                            iconSize: 28,
-                          ),
-                          onPressed: () {
-                            taskProvider.unarchiveTask(context, task);
-                          },
-                        ),
-                      ),
-                      Tooltip(
-                        message: 'Copiar',
-                        child: IconButton(
-                          icon: const Icon(Icons.copy),
-                          color: Colors.blue.shade800,
-                          style: IconButton.styleFrom(
-                            iconSize: 28,
-                          ),
-                          onPressed: () {
-                            taskProvider.copyTask(context, task);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Detalles
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TaskDetailsScreen(task: task),
                       ),
                     );
                   },
                 ),
-              );
-            },
-          ),
         );
       },
     );

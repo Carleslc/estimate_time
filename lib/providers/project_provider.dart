@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 
 import '../models/project.dart';
+import '../models/task.dart';
 import '../services/isar_service.dart';
 import '../utils/message.dart';
 
@@ -13,6 +14,9 @@ class ProjectProvider with ChangeNotifier {
   List<Project> _projects = [];
 
   List<Project> get projects => UnmodifiableListView(_projects);
+
+  // Mapa para gestionar proyectos eliminados y sus tareas vinculadas
+  final Map<int, List<int>> _deletedProjectTasks = {};
 
   ProjectProvider(this.isarService) {
     loadProjects();
@@ -29,49 +33,98 @@ class ProjectProvider with ChangeNotifier {
       ..name = name
       ..color = color;
 
-    await addProject(project);
+    await _addProject(project);
+
+    notifyListeners();
 
     return project;
   }
 
-  Future<void> addProject(Project project) async {
-    _projects.add(project);
-
-    await updateProject(project);
+  Future<void> _addProject(Project project) async {
+    // Evitar duplicados
+    if (!_projects.any((p) => p.id == project.id)) {
+      _projects.add(project); // UI
+    }
+    await updateProject(project); // DB
   }
 
-  Future<void> updateProject(Project project, {bool notify = true}) async {
+  Future<void> updateProject(Project project) async {
     final isar = await isarService.db;
     await isar.writeTxn(() async {
       await isar.projects.put(project);
     });
-    if (notify) notifyListeners();
   }
 
   Future<void> deleteProject(BuildContext context, Project project) async {
-    // Elimina el proyecto (UI)
+    final isar = await isarService.db;
+
+    // Encontrar tareas vinculadas al proyecto
+    final linkedTasks = await isar.tasks
+        .filter()
+        .project((q) => q.idEqualTo(project.id))
+        .findAll();
+
+    // Guardar los ids de las tareas vinculadas
+    _deletedProjectTasks[project.id] =
+        linkedTasks.map((task) => task.id).toList();
+
+    await isar.writeTxn(() async {
+      // Desvincular tareas del proyecto
+      for (var task in linkedTasks) {
+        task.project.value = null;
+        await isar.tasks.put(task);
+      }
+      // Eliminar el proyecto (DB)
+      await isar.projects.delete(project.id);
+    });
+
+    // Eliminar el proyecto (UI)
     _projects.remove(project);
 
     notifyListeners();
 
-    // Elimina el proyecto (DB)
-    final isar = await isarService.db;
-    await isar.writeTxn(() async {
-      await isar.projects.delete(project.id);
+    ShowMessage.projectDeleted(context, project, restoreProject)
+        .closed
+        .then((SnackBarClosedReason reason) {
+      if (reason != SnackBarClosedReason.action) {
+        // Proyecto permanentemente eliminado
+        _freeProject(project);
+      }
     });
-
-    ShowMessage.projectDeleted(context, project, restoreProject);
   }
 
-  // FIXME: Se duplica el proyecto si se elimina estando en otra pantalla que no sea proyectos. Es decir,
-  // si desde active_tasks por ejemplo entramos en los detalles de una tarea y se hace click en su etiqueta de proyecto para ir a la pantalla del proyecto,
-  // si luego desde project_details se elimina el proyecto con su acción de la AppBar, al volver a la pantalla de proyectos con navigateToIndex, el proyecto sigue allí sin borrarse,
-  // así que después de darle a "Deshacer", el proyecto se duplica
   // FIXME: Las tareas se desvinculan del proyecto al eliminarlo y restaurarlo, así que cuando se elimina y restaura el proyecto
   // no se muestran sus tareas en la pantalla de project_details, y no se muestra la etiqueta
   // del proyecto en las tareas de la pantalla de active_tasks o archive_tasks, ni dentro de task_details
   Future<void> restoreProject(Project project) async {
-    // Restaura el proyecto
-    await addProject(project);
+    // Restaurar el proyecto
+    await _addProject(project);
+
+    // Volver a vincular las tareas que estaban vinculadas antes de eliminar el proyecto
+    final taskIds = _deletedProjectTasks[project.id];
+
+    if (taskIds != null && taskIds.isNotEmpty) {
+      final isar = await isarService.db;
+      final tasksToRestore = await isar.tasks.getAll(taskIds);
+
+      await isar.writeTxn(() async {
+        for (Task? task in tasksToRestore) {
+          if (task == null) continue;
+          task.project.value = project;
+          await isar.tasks.put(task);
+        }
+      });
+
+      // Tareas restauradas
+      _freeProject(project);
+    }
+
+    notifyListeners();
+  }
+
+  // Libera la memoria asociada a este proyecto si ya no se va a restaurar
+  void _freeProject(Project project) {
+    _deletedProjectTasks[project.id]?.clear();
+    _deletedProjectTasks.remove(project.id);
   }
 }

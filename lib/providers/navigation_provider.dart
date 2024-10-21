@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+enum AppPage { activeTasks, projects, archivedTasks }
+
 class NavigationProvider with ChangeNotifier {
-  int _currentIndex = 0;
+  AppPage _currentPage = AppPage.activeTasks;
 
-  int get currentIndex => _currentIndex;
+  AppPage get currentPage => _currentPage;
 
-  void setIndex(int index) {
-    if (_currentIndex != index) {
-      _currentIndex = index;
+  void setPage(AppPage page) {
+    if (_currentPage != page) {
+      _currentPage = page;
       notifyListeners();
     }
   }
 
-  // TODO: Refactor index to Page (e.g. Page.activeTasks.index)
-  // index ahora mismo es un número mágico, debería estar en un enum para que sea más legible.
-  // La función puede llamarse entonces navigateToPage(BuildContext, Page).
-  // Otra opción es hacerlo con Router y named routes.
-  static void navigateToIndex(BuildContext context, int index) {
+  static void navigateToPage(BuildContext context, AppPage page) {
     if (!context.mounted) return;
-    Provider.of<NavigationProvider>(context, listen: false).setIndex(index);
+    Provider.of<NavigationProvider>(context, listen: false).setPage(page);
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }

@@ -5,12 +5,23 @@ abstract final class AppStyles {
 
   static ColorScheme colorScheme = ColorScheme.fromSeed(seedColor: _seedColor);
 
+  // TODO: Refactor TextStyles
+
+  static late TextTheme textTheme;
+
   static ThemeData theme(BuildContext context) {
-    // ThemeData defaultTheme = Theme.of(context);
+    ThemeData defaultTheme = Theme.of(context);
+
+    textTheme = defaultTheme.textTheme.copyWith(
+      bodyMedium: const TextStyle(
+        fontSize: 16,
+      ),
+    );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.primary, // colorScheme.inversePrimary
         foregroundColor:

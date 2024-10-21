@@ -79,7 +79,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 icon: Icon(Icons.delete),
                 onPressed: () async {
                   await taskProvider.deleteTask(context, widget.task);
-                  NavigationProvider.navigateToIndex(context, 2);
+                  NavigationProvider.navigateToPage(
+                      context, AppPage.archivedTasks);
                 },
               ),
             ),
@@ -133,6 +134,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 10),
+                      // FIXME: El color se muestra siempre label blanco sobre fondo azul
                       child: Chip(
                         label: Text(
                           project.name,
@@ -142,9 +144,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                       ),
                     ),
                   ),
-                if (widget.task.archived)
+                if (widget.task.estimatedTimeSeconds != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20),
+                    child: Text(
+                        'Estimación:  ${widget.task.estimatedTime?.format()}'),
+                  ),
+                if (widget.task.archived)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
                     child: Text(
                       'Esta tarea está archivada',
                       style: TextStyle(
@@ -153,18 +161,12 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                       ),
                     ),
                   ),
-                if (widget.task.estimatedTimeSeconds != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Text(
-                        'Estimación:  ${widget.task.estimatedTime?.format()}'),
-                  ),
                 // Tiempo
                 if (!widget.task.archived && widget.task.todayTimeSeconds > 0)
                   Text('Hoy:    ${widget.task.todayTime.format()}'),
                 if (widget.task.totalTimeSeconds > 0)
                   Text('Total:  ${widget.task.totalTime.format()}'),
-                SizedBox(height: 20),
+                SizedBox(height: 10),
                 if (!widget.task.archived)
                   // Botón Play/Pause
                   ElevatedButton.icon(
@@ -173,6 +175,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     label: Text(widget.task.timerLabel),
                     onPressed: () {
                       taskProvider.toggleTaskTimer(widget.task);
+                      if (!widget.task.isRunning) {
+                        _loadTimeHistory();
+                      }
                     },
                   ),
                 SizedBox(height: 20),
@@ -201,7 +206,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   ),
                 SizedBox(height: 20),
                 // Gráfico con fl_chart
-                // FIXME: No se muestran los datos en el gráfico
                 // FIXME: El eje vertical muestra los labels sin espacio suficiente y hace wrap
                 Expanded(
                   child: _chartData.isNotEmpty

@@ -51,25 +51,27 @@ class TaskProvider with ChangeNotifier {
       ..lastUpdated = DateTime.now()
       ..setProject(project);
 
-    await addTask(task);
+    await _addTask(task);
+
+    notifyListeners();
 
     return task;
   }
 
-  Future<void> addTask(Task task) async {
+  Future<void> _addTask(Task task) async {
+    // Añadir tarea (UI)
     if (task.archived) {
       _archivedTasks.add(task);
     } else {
       _tasks.add(task);
     }
 
+    // Añadir tarea (DB)
     final isar = await isarService.db;
     await isar.writeTxn(() async {
       await isar.tasks.put(task);
       await task.project.save();
     });
-
-    notifyListeners();
   }
 
   Future<void> updateTask(Task task, {bool notify = true}) async {
@@ -85,43 +87,46 @@ class TaskProvider with ChangeNotifier {
 
     // Inicia el cronómetro
     _runTimer(task);
-
-    notifyListeners();
   }
 
   // FIXME: Va muy lento sumando segundos. No se actualizan los segundos correctamente,
   // a veces tarda 2 o 3 segundos en actualizarse la UI y solo se suma un segundo,
-  // así que esperando 10 segundos con el cronómetro en marcha a lo mejor se registran solo 6 o 7
+  // así que esperando 10 segundos con el cronómetro en marcha a lo mejor se registran solo 6 o 7.
+  // Sin embargo, el debugPrint se muestra aproximadamente cada segundo
   void _runTimer(Task task) {
-    task.isRunning = true;
-    task.lastUpdated = DateTime.now();
-
-    updateTask(task, notify: false);
-
     timerService.startTimer(task.id, () {
       final elapsed = task.updateElapsedTime();
+      _updateTimeHistory(task, elapsed);
       debugPrint(elapsed.inMilliseconds.toString());
       notifyListeners();
     });
+
+    task.isRunning = true;
+    task.lastUpdated = DateTime.now();
+
+    updateTask(task);
   }
 
   void _resumeTimer(Task task) {
-    if (task.isRunning) return;
+    if (timerService.isRunning(task.id)) return;
 
     final elapsed = task.updateElapsedTime();
-
-    // Inicia el cronómetro
-    _runTimer(task);
 
     // Actualizar historial
     _updateTimeHistory(task, elapsed);
 
     // Calcular desviación
     task.updateDeviation();
+
+    // Inicia el cronómetro
+    _runTimer(task);
   }
 
-  Future<void> pauseTimer(Task task) async {
+  Future<void> pauseTimer(Task task, {bool notify = true}) async {
     if (!task.isRunning) return;
+
+    // Pausar el cronómetro
+    timerService.stopTimer(task.id);
 
     task.isRunning = false;
 
@@ -133,10 +138,7 @@ class TaskProvider with ChangeNotifier {
     // Calcular desviación
     task.updateDeviation();
 
-    timerService.stopTimer(task.id);
-    await updateTask(task);
-
-    notifyListeners();
+    await updateTask(task, notify: notify);
   }
 
   Future<void> toggleTaskTimer(Task task) async {
@@ -156,6 +158,7 @@ class TaskProvider with ChangeNotifier {
     await isar.writeTxn(() async {
       TimeEntry? timeEntry;
 
+      // TODO: Reverse iteration (recent entries are added last)
       for (TimeEntry entry in task.timeHistory) {
         if (isSameDay(entry.date, now)) {
           timeEntry = entry;
@@ -182,17 +185,15 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> archiveTask(BuildContext context, Task task) async {
     // Pausa el cronómetro antes de archivar la tarea
-    await pauseTimer(task);
+    await pauseTimer(task, notify: false);
 
     // Mueve la tarea a la lista de tareas archivadas (UI)
     task.archived = true;
     _tasks.remove(task);
     _archivedTasks.add(task);
 
-    notifyListeners();
-
     // Actualiza la tarea (DB)
-    await updateTask(task, notify: false);
+    await updateTask(task);
 
     ShowMessage.taskArchived(context, task);
   }
@@ -203,22 +204,18 @@ class TaskProvider with ChangeNotifier {
     _archivedTasks.remove(task);
     _tasks.add(task);
 
-    notifyListeners();
-
     // Actualiza la tarea (DB)
-    await updateTask(task, notify: false);
+    await updateTask(task);
 
     ShowMessage.taskUnarchived(context, task);
   }
 
   Future<void> deleteTask(BuildContext context, Task task) async {
+    debugPrint('Before delete project: ${task.project.value}');
+
     // Elimina la tarea (UI)
     _tasks.remove(task);
     _archivedTasks.remove(task);
-
-    notifyListeners();
-
-    debugPrint('Before delete project: ${task.project.value}');
 
     // Elimina la tarea (DB)
     final isar = await isarService.db;
@@ -226,18 +223,28 @@ class TaskProvider with ChangeNotifier {
       await isar.tasks.delete(task.id);
     });
 
+    notifyListeners();
+
     debugPrint('After delete project: ${task.project.value}');
 
     ShowMessage.taskDeleted(context, task, restoreTask);
   }
 
-  // FIXME: No se restaura el proyecto de la tarea, así que después de eliminar la tarea y restaurarla con la acción de SnackBar
-  // no se muestra la etiqueta del proyecto en la pantalla de active_tasks o archive_tasks, ni dentro de task_details
   Future<void> restoreTask(Task task) async {
     debugPrint('Before restore project: ${task.project.value}');
 
     // Restaura la tarea
-    await addTask(task);
+    await _addTask(task);
+
+    // Asegurarse de que el proyecto está restaurado y vinculado
+    if (task.project.value != null) {
+      final project = await task.getProject();
+      if (project != null) {
+        await updateTask(task, notify: false);
+      }
+    }
+
+    notifyListeners();
 
     debugPrint('After restore project: ${task.project.value}');
   }

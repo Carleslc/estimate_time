@@ -18,9 +18,9 @@ class ActiveTasksScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Tareas'),
           ),
-          // TODO: Add dividers between tasks
-          body: ListView.builder(
+          body: ListView.separated(
             itemCount: tasks.length,
+            separatorBuilder: (_, __) => const Divider(),
             itemBuilder: (_, index) {
               final task = tasks[index];
               return Dismissible(
@@ -68,11 +68,13 @@ class ActiveTasksScreen extends StatelessWidget {
                         },
                       ),
                       // Título
-                      Text(
-                        task.title,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

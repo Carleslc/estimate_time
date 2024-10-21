@@ -30,26 +30,32 @@ class HomeScreen extends StatelessWidget {
               appBarTheme: AppBarTheme(
                 titleTextStyle: theme.textTheme.headlineSmall?.copyWith(
                   color: theme.colorScheme.secondary,
-                  // fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            child: _screens[navigationProvider.currentIndex],
+            child: _screens[navigationProvider.currentPage.index],
           ),
           bottomNavigationBar: SizedBox(
             height: 70,
             child: BottomNavigationBar(
-              currentIndex: navigationProvider.currentIndex,
+              currentIndex: navigationProvider.currentPage.index,
               items: [
                 BottomNavigationBarItem(
-                    icon: Icon(Icons.task), label: 'Tareas'),
+                  icon: Icon(Icons.task),
+                  label: 'Tareas',
+                ),
                 BottomNavigationBarItem(
-                    icon: Icon(Icons.folder), label: 'Proyectos'),
+                  icon: Icon(Icons.folder),
+                  label: 'Proyectos',
+                ),
                 BottomNavigationBarItem(
-                    icon: Icon(Icons.archive), label: 'Archivo'),
+                  icon: Icon(Icons.archive),
+                  label: 'Archivo',
+                ),
               ],
               onTap: (index) {
-                navigationProvider.setIndex(index);
+                final selectedPage = AppPage.values[index];
+                navigationProvider.setPage(selectedPage);
                 ShowMessage.hideCurrentSnackBar(context);
               },
             ),

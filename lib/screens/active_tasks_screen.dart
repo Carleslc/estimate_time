@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/project.dart';
 import '../providers/project_provider.dart';
 import '../providers/task_provider.dart';
+import '../utils/message.dart';
 import '../utils/time.dart';
 import 'task_details_screen.dart';
 
@@ -18,99 +19,102 @@ class ActiveTasksScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Tareas'),
           ),
-          body: ListView.separated(
-            itemCount: tasks.length,
-            separatorBuilder: (_, __) => const Divider(),
-            itemBuilder: (_, index) {
-              final task = tasks[index];
-              return Dismissible(
-                key: Key(task.id.toString()),
-                direction: DismissDirection.startToEnd,
-                onDismissed: (_) {
-                  taskProvider.archiveTask(context, task);
-                },
-                background: Container(
-                  color: Colors.orange,
-                  alignment: Alignment.centerLeft,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(Icons.archive, color: Colors.white),
-                ),
-                child: ListTile(
-                  // Título
-                  title: Row(
-                    children: [
-                      // Proyecto (etiqueta)
-                      FutureBuilder<Project?>(
-                        future: task.getProject(),
-                        builder: (_, snapshot) {
-                          if (snapshot.hasData && snapshot.data != null) {
-                            final project = snapshot.data!;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Chip(
-                                label: Text(
-                                  project.name,
-                                  style: TextStyle(
-                                    color: project.labelColor,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+          body: tasks.isEmpty
+              ? Center(child: const Text('No hay tareas'))
+              : ListView.separated(
+                  itemCount: tasks.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (_, index) {
+                    final task = tasks[index];
+                    return Dismissible(
+                      key: Key(task.id.toString()),
+                      direction: DismissDirection.startToEnd,
+                      onDismissed: (_) {
+                        taskProvider.archiveTask(context, task);
+                      },
+                      background: Container(
+                        color: Colors.orange,
+                        alignment: Alignment.centerLeft,
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Icon(Icons.archive, color: Colors.white),
+                      ),
+                      child: ListTile(
+                        // Título
+                        title: Row(
+                          children: [
+                            // Proyecto (etiqueta)
+                            FutureBuilder<Project?>(
+                              future: task.getProject(),
+                              builder: (_, snapshot) {
+                                if (snapshot.hasData && snapshot.data != null) {
+                                  final project = snapshot.data!;
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: Chip(
+                                      label: Text(
+                                        project.name,
+                                        style: TextStyle(
+                                          color: project.labelColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      backgroundColor: project.color,
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 4, vertical: -4),
+                                      visualDensity: VisualDensity(
+                                          horizontal: -3, vertical: -3),
+                                    ),
+                                  );
+                                }
+                                return SizedBox.shrink();
+                              },
+                            ),
+                            // Título
+                            Expanded(
+                              child: Text(
+                                task.title,
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                backgroundColor: project.color,
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: -4),
-                                visualDensity:
-                                    VisualDensity(horizontal: -3, vertical: -3),
                               ),
-                            );
-                          }
-                          return SizedBox.shrink();
-                        },
-                      ),
-                      // Título
-                      Expanded(
-                        child: Text(
-                          task.title,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  // Tiempo
-                  subtitle: Text(
-                    task.todayTime.formatTime(),
-                    style: TextStyle(fontSize: 20),
-                  ),
-                  // Play / Pause
-                  trailing: IconButton.filled(
-                    icon: Icon(task.isRunning ? Icons.pause : Icons.play_arrow),
-                    color: Colors.white,
-                    style: IconButton.styleFrom(
-                      iconSize: 32,
-                      backgroundColor: task.isRunning
-                          ? Colors.red.shade400
-                          : Colors.green.shade400,
-                    ),
-                    onPressed: () {
-                      taskProvider.toggleTaskTimer(task);
-                    },
-                  ),
-                  // Detalles
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TaskDetailsScreen(task: task),
+                        // Tiempo
+                        subtitle: Text(
+                          task.todayTime.formatTime(),
+                          style: TextStyle(fontSize: 20),
+                        ),
+                        // Play / Pause
+                        trailing: IconButton.filled(
+                          icon: Icon(
+                              task.isRunning ? Icons.pause : Icons.play_arrow),
+                          color: Colors.white,
+                          style: IconButton.styleFrom(
+                            iconSize: 32,
+                            backgroundColor: task.isRunning
+                                ? Colors.red.shade400
+                                : Colors.green.shade400,
+                          ),
+                          onPressed: () {
+                            taskProvider.toggleTaskTimer(task);
+                          },
+                        ),
+                        // Detalles
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TaskDetailsScreen(task: task),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
                 ),
-              );
-            },
-          ),
           floatingActionButton: Tooltip(
             message: 'Añadir tarea',
             child: FloatingActionButton(
@@ -153,7 +157,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final projectProvider = Provider.of<ProjectProvider>(context);
+    final projectProvider = context.read<ProjectProvider>();
 
     return AlertDialog(
       title: Text('Nueva tarea'),
@@ -256,11 +260,16 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   minutes: _estimatedMinutes,
                 );
               }
-              final taskProvider =
-                  Provider.of<TaskProvider>(context, listen: false);
-              await taskProvider.createTask(
-                  _title, _selectedProject, _estimatedTime);
-              Navigator.pop(context);
+              final taskProvider = context.read<TaskProvider>();
+
+              await tryOrShowError(context, () async {
+                await taskProvider.createTask(
+                  _title,
+                  _selectedProject,
+                  _estimatedTime,
+                );
+                Navigator.pop(context);
+              }, 'No se ha podido crear la tarea');
             }
           },
         ),

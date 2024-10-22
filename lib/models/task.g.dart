@@ -27,9 +27,9 @@ const TaskSchema = CollectionSchema(
       name: r'deviation',
       type: IsarType.double,
     ),
-    r'estimatedTimeSeconds': PropertySchema(
+    r'estimatedTimeMillis': PropertySchema(
       id: 2,
-      name: r'estimatedTimeSeconds',
+      name: r'estimatedTimeMillis',
       type: IsarType.long,
     ),
     r'isRunning': PropertySchema(
@@ -47,14 +47,14 @@ const TaskSchema = CollectionSchema(
       name: r'title',
       type: IsarType.string,
     ),
-    r'todayTimeSeconds': PropertySchema(
+    r'todayTimeMillis': PropertySchema(
       id: 6,
-      name: r'todayTimeSeconds',
+      name: r'todayTimeMillis',
       type: IsarType.long,
     ),
-    r'totalTimeSeconds': PropertySchema(
+    r'totalTimeMillis': PropertySchema(
       id: 7,
-      name: r'totalTimeSeconds',
+      name: r'totalTimeMillis',
       type: IsarType.long,
     )
   },
@@ -103,12 +103,12 @@ void _taskSerialize(
 ) {
   writer.writeBool(offsets[0], object.archived);
   writer.writeDouble(offsets[1], object.deviation);
-  writer.writeLong(offsets[2], object.estimatedTimeSeconds);
+  writer.writeLong(offsets[2], object.estimatedTimeMillis);
   writer.writeBool(offsets[3], object.isRunning);
   writer.writeDateTime(offsets[4], object.lastUpdated);
   writer.writeString(offsets[5], object.title);
-  writer.writeLong(offsets[6], object.todayTimeSeconds);
-  writer.writeLong(offsets[7], object.totalTimeSeconds);
+  writer.writeLong(offsets[6], object.todayTimeMillis);
+  writer.writeLong(offsets[7], object.totalTimeMillis);
 }
 
 Task _taskDeserialize(
@@ -120,13 +120,13 @@ Task _taskDeserialize(
   final object = Task();
   object.archived = reader.readBool(offsets[0]);
   object.deviation = reader.readDouble(offsets[1]);
-  object.estimatedTimeSeconds = reader.readLongOrNull(offsets[2]);
+  object.estimatedTimeMillis = reader.readLongOrNull(offsets[2]);
   object.id = id;
   object.isRunning = reader.readBool(offsets[3]);
   object.lastUpdated = reader.readDateTime(offsets[4]);
   object.title = reader.readString(offsets[5]);
-  object.todayTimeSeconds = reader.readLong(offsets[6]);
-  object.totalTimeSeconds = reader.readLong(offsets[7]);
+  object.todayTimeMillis = reader.readLong(offsets[6]);
+  object.totalTimeMillis = reader.readLong(offsets[7]);
   return object;
 }
 
@@ -320,61 +320,61 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeSecondsIsNull() {
+  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeMillisIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'estimatedTimeSeconds',
+        property: r'estimatedTimeMillis',
       ));
     });
   }
 
   QueryBuilder<Task, Task, QAfterFilterCondition>
-      estimatedTimeSecondsIsNotNull() {
+      estimatedTimeMillisIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'estimatedTimeSeconds',
+        property: r'estimatedTimeMillis',
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeSecondsEqualTo(
+  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeMillisEqualTo(
       int? value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'estimatedTimeSeconds',
+        property: r'estimatedTimeMillis',
         value: value,
       ));
     });
   }
 
   QueryBuilder<Task, Task, QAfterFilterCondition>
-      estimatedTimeSecondsGreaterThan(
+      estimatedTimeMillisGreaterThan(
     int? value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'estimatedTimeSeconds',
+        property: r'estimatedTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeSecondsLessThan(
+  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeMillisLessThan(
     int? value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'estimatedTimeSeconds',
+        property: r'estimatedTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeSecondsBetween(
+  QueryBuilder<Task, Task, QAfterFilterCondition> estimatedTimeMillisBetween(
     int? lower,
     int? upper, {
     bool includeLower = true,
@@ -382,7 +382,7 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'estimatedTimeSeconds',
+        property: r'estimatedTimeMillis',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -633,43 +633,43 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeSecondsEqualTo(
+  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeMillisEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'todayTimeSeconds',
+        property: r'todayTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeSecondsGreaterThan(
+  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeMillisGreaterThan(
     int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'todayTimeSeconds',
+        property: r'todayTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeSecondsLessThan(
+  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeMillisLessThan(
     int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'todayTimeSeconds',
+        property: r'todayTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeSecondsBetween(
+  QueryBuilder<Task, Task, QAfterFilterCondition> todayTimeMillisBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -677,7 +677,7 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'todayTimeSeconds',
+        property: r'todayTimeMillis',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -686,43 +686,43 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeSecondsEqualTo(
+  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeMillisEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'totalTimeSeconds',
+        property: r'totalTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeSecondsGreaterThan(
+  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeMillisGreaterThan(
     int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'totalTimeSeconds',
+        property: r'totalTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeSecondsLessThan(
+  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeMillisLessThan(
     int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'totalTimeSeconds',
+        property: r'totalTimeMillis',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeSecondsBetween(
+  QueryBuilder<Task, Task, QAfterFilterCondition> totalTimeMillisBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -730,7 +730,7 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'totalTimeSeconds',
+        property: r'totalTimeMillis',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -838,15 +838,15 @@ extension TaskQuerySortBy on QueryBuilder<Task, Task, QSortBy> {
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> sortByEstimatedTimeSeconds() {
+  QueryBuilder<Task, Task, QAfterSortBy> sortByEstimatedTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estimatedTimeSeconds', Sort.asc);
+      return query.addSortBy(r'estimatedTimeMillis', Sort.asc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> sortByEstimatedTimeSecondsDesc() {
+  QueryBuilder<Task, Task, QAfterSortBy> sortByEstimatedTimeMillisDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estimatedTimeSeconds', Sort.desc);
+      return query.addSortBy(r'estimatedTimeMillis', Sort.desc);
     });
   }
 
@@ -886,27 +886,27 @@ extension TaskQuerySortBy on QueryBuilder<Task, Task, QSortBy> {
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> sortByTodayTimeSeconds() {
+  QueryBuilder<Task, Task, QAfterSortBy> sortByTodayTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'todayTimeSeconds', Sort.asc);
+      return query.addSortBy(r'todayTimeMillis', Sort.asc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> sortByTodayTimeSecondsDesc() {
+  QueryBuilder<Task, Task, QAfterSortBy> sortByTodayTimeMillisDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'todayTimeSeconds', Sort.desc);
+      return query.addSortBy(r'todayTimeMillis', Sort.desc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> sortByTotalTimeSeconds() {
+  QueryBuilder<Task, Task, QAfterSortBy> sortByTotalTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalTimeSeconds', Sort.asc);
+      return query.addSortBy(r'totalTimeMillis', Sort.asc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> sortByTotalTimeSecondsDesc() {
+  QueryBuilder<Task, Task, QAfterSortBy> sortByTotalTimeMillisDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalTimeSeconds', Sort.desc);
+      return query.addSortBy(r'totalTimeMillis', Sort.desc);
     });
   }
 }
@@ -936,15 +936,15 @@ extension TaskQuerySortThenBy on QueryBuilder<Task, Task, QSortThenBy> {
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> thenByEstimatedTimeSeconds() {
+  QueryBuilder<Task, Task, QAfterSortBy> thenByEstimatedTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estimatedTimeSeconds', Sort.asc);
+      return query.addSortBy(r'estimatedTimeMillis', Sort.asc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> thenByEstimatedTimeSecondsDesc() {
+  QueryBuilder<Task, Task, QAfterSortBy> thenByEstimatedTimeMillisDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'estimatedTimeSeconds', Sort.desc);
+      return query.addSortBy(r'estimatedTimeMillis', Sort.desc);
     });
   }
 
@@ -996,27 +996,27 @@ extension TaskQuerySortThenBy on QueryBuilder<Task, Task, QSortThenBy> {
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> thenByTodayTimeSeconds() {
+  QueryBuilder<Task, Task, QAfterSortBy> thenByTodayTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'todayTimeSeconds', Sort.asc);
+      return query.addSortBy(r'todayTimeMillis', Sort.asc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> thenByTodayTimeSecondsDesc() {
+  QueryBuilder<Task, Task, QAfterSortBy> thenByTodayTimeMillisDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'todayTimeSeconds', Sort.desc);
+      return query.addSortBy(r'todayTimeMillis', Sort.desc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> thenByTotalTimeSeconds() {
+  QueryBuilder<Task, Task, QAfterSortBy> thenByTotalTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalTimeSeconds', Sort.asc);
+      return query.addSortBy(r'totalTimeMillis', Sort.asc);
     });
   }
 
-  QueryBuilder<Task, Task, QAfterSortBy> thenByTotalTimeSecondsDesc() {
+  QueryBuilder<Task, Task, QAfterSortBy> thenByTotalTimeMillisDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'totalTimeSeconds', Sort.desc);
+      return query.addSortBy(r'totalTimeMillis', Sort.desc);
     });
   }
 }
@@ -1034,9 +1034,9 @@ extension TaskQueryWhereDistinct on QueryBuilder<Task, Task, QDistinct> {
     });
   }
 
-  QueryBuilder<Task, Task, QDistinct> distinctByEstimatedTimeSeconds() {
+  QueryBuilder<Task, Task, QDistinct> distinctByEstimatedTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'estimatedTimeSeconds');
+      return query.addDistinctBy(r'estimatedTimeMillis');
     });
   }
 
@@ -1059,15 +1059,15 @@ extension TaskQueryWhereDistinct on QueryBuilder<Task, Task, QDistinct> {
     });
   }
 
-  QueryBuilder<Task, Task, QDistinct> distinctByTodayTimeSeconds() {
+  QueryBuilder<Task, Task, QDistinct> distinctByTodayTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'todayTimeSeconds');
+      return query.addDistinctBy(r'todayTimeMillis');
     });
   }
 
-  QueryBuilder<Task, Task, QDistinct> distinctByTotalTimeSeconds() {
+  QueryBuilder<Task, Task, QDistinct> distinctByTotalTimeMillis() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'totalTimeSeconds');
+      return query.addDistinctBy(r'totalTimeMillis');
     });
   }
 }
@@ -1091,9 +1091,9 @@ extension TaskQueryProperty on QueryBuilder<Task, Task, QQueryProperty> {
     });
   }
 
-  QueryBuilder<Task, int?, QQueryOperations> estimatedTimeSecondsProperty() {
+  QueryBuilder<Task, int?, QQueryOperations> estimatedTimeMillisProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'estimatedTimeSeconds');
+      return query.addPropertyName(r'estimatedTimeMillis');
     });
   }
 
@@ -1115,15 +1115,15 @@ extension TaskQueryProperty on QueryBuilder<Task, Task, QQueryProperty> {
     });
   }
 
-  QueryBuilder<Task, int, QQueryOperations> todayTimeSecondsProperty() {
+  QueryBuilder<Task, int, QQueryOperations> todayTimeMillisProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'todayTimeSeconds');
+      return query.addPropertyName(r'todayTimeMillis');
     });
   }
 
-  QueryBuilder<Task, int, QQueryOperations> totalTimeSecondsProperty() {
+  QueryBuilder<Task, int, QQueryOperations> totalTimeMillisProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'totalTimeSeconds');
+      return query.addPropertyName(r'totalTimeMillis');
     });
   }
 }
@@ -1144,9 +1144,9 @@ const TimeEntrySchema = CollectionSchema(
       name: r'date',
       type: IsarType.dateTime,
     ),
-    r'seconds': PropertySchema(
+    r'milliseconds': PropertySchema(
       id: 1,
-      name: r'seconds',
+      name: r'milliseconds',
       type: IsarType.long,
     )
   },
@@ -1180,7 +1180,7 @@ void _timeEntrySerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeDateTime(offsets[0], object.date);
-  writer.writeLong(offsets[1], object.seconds);
+  writer.writeLong(offsets[1], object.milliseconds);
 }
 
 TimeEntry _timeEntryDeserialize(
@@ -1192,7 +1192,7 @@ TimeEntry _timeEntryDeserialize(
   final object = TimeEntry();
   object.date = reader.readDateTime(offsets[0]);
   object.id = id;
-  object.seconds = reader.readLong(offsets[1]);
+  object.milliseconds = reader.readLong(offsets[1]);
   return object;
 }
 
@@ -1409,43 +1409,45 @@ extension TimeEntryQueryFilter
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> secondsEqualTo(
+  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> millisecondsEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'seconds',
+        property: r'milliseconds',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> secondsGreaterThan(
+  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition>
+      millisecondsGreaterThan(
     int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'seconds',
+        property: r'milliseconds',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> secondsLessThan(
+  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition>
+      millisecondsLessThan(
     int value, {
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'seconds',
+        property: r'milliseconds',
         value: value,
       ));
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> secondsBetween(
+  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> millisecondsBetween(
     int lower,
     int upper, {
     bool includeLower = true,
@@ -1453,7 +1455,7 @@ extension TimeEntryQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'seconds',
+        property: r'milliseconds',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1482,15 +1484,15 @@ extension TimeEntryQuerySortBy on QueryBuilder<TimeEntry, TimeEntry, QSortBy> {
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> sortBySeconds() {
+  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> sortByMilliseconds() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'seconds', Sort.asc);
+      return query.addSortBy(r'milliseconds', Sort.asc);
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> sortBySecondsDesc() {
+  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> sortByMillisecondsDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'seconds', Sort.desc);
+      return query.addSortBy(r'milliseconds', Sort.desc);
     });
   }
 }
@@ -1521,15 +1523,15 @@ extension TimeEntryQuerySortThenBy
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> thenBySeconds() {
+  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> thenByMilliseconds() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'seconds', Sort.asc);
+      return query.addSortBy(r'milliseconds', Sort.asc);
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> thenBySecondsDesc() {
+  QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> thenByMillisecondsDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'seconds', Sort.desc);
+      return query.addSortBy(r'milliseconds', Sort.desc);
     });
   }
 }
@@ -1542,9 +1544,9 @@ extension TimeEntryQueryWhereDistinct
     });
   }
 
-  QueryBuilder<TimeEntry, TimeEntry, QDistinct> distinctBySeconds() {
+  QueryBuilder<TimeEntry, TimeEntry, QDistinct> distinctByMilliseconds() {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'seconds');
+      return query.addDistinctBy(r'milliseconds');
     });
   }
 }
@@ -1563,9 +1565,9 @@ extension TimeEntryQueryProperty
     });
   }
 
-  QueryBuilder<TimeEntry, int, QQueryOperations> secondsProperty() {
+  QueryBuilder<TimeEntry, int, QQueryOperations> millisecondsProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'seconds');
+      return query.addPropertyName(r'milliseconds');
     });
   }
 }

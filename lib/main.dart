@@ -43,6 +43,7 @@ class _EstimateTimeAppState extends State<EstimateTimeApp> {
         title: EstimateTimeApp.title,
         home: HomeScreen(),
         theme: AppStyles.theme(context),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }

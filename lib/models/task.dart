@@ -14,14 +14,14 @@ class Task {
   @Index()
   final project = IsarLink<Project>();
 
-  // Tiempo estimado en segundos
-  int? estimatedTimeSeconds;
+  // Tiempo estimado en milisegundos
+  int? estimatedTimeMillis;
 
-  // Tiempo total acumulado en segundos
-  int totalTimeSeconds = 0;
+  // Tiempo total acumulado en milisegundos
+  int totalTimeMillis = 0;
 
-  // Tiempo registrado hoy en segundos
-  int todayTimeSeconds = 0;
+  // Tiempo registrado hoy en milisegundos
+  int todayTimeMillis = 0;
 
   // Fecha de última actualización del tiempo registrado
   DateTime lastUpdated = DateTime.now();
@@ -40,32 +40,34 @@ class Task {
 
   // Propiedades calculadas para Duration
   @ignore
-  Duration? get estimatedTime => estimatedTimeSeconds != null
-      ? Duration(seconds: estimatedTimeSeconds!)
+  Duration? get estimatedTime => estimatedTimeMillis != null
+      ? Duration(milliseconds: estimatedTimeMillis!)
       : null;
 
   set estimatedTime(Duration? duration) {
-    estimatedTimeSeconds = duration?.inSeconds;
+    estimatedTimeMillis = duration?.inMilliseconds;
   }
 
   @ignore
-  Duration get totalTime => Duration(seconds: totalTimeSeconds);
+  Duration get totalTime => Duration(milliseconds: totalTimeMillis);
 
   set totalTime(Duration duration) {
-    totalTimeSeconds = duration.inSeconds;
+    totalTimeMillis = duration.inMilliseconds;
   }
 
   @ignore
-  Duration get todayTime => Duration(seconds: todayTimeSeconds);
+  Duration get todayTime => Duration(milliseconds: todayTimeMillis);
 
   set todayTime(Duration duration) {
-    todayTimeSeconds = duration.inSeconds;
+    todayTimeMillis = duration.inMilliseconds;
   }
 
   Future<Project?> getProject() async {
     if (project.value == null) return null;
     await project.load();
-    return project.value;
+    Project? loadedProject = project.value;
+    loadedProject?.update();
+    return loadedProject;
   }
 
   void setProject(Project? project) {
@@ -76,7 +78,7 @@ class Task {
   String get timerLabel {
     if (isRunning) {
       return 'Pausar';
-    } else if (totalTimeSeconds > 0) {
+    } else if (totalTimeMillis > 0) {
       return 'Reanudar';
     } else {
       return 'Empezar';
@@ -84,16 +86,17 @@ class Task {
   }
 
   void updateDeviation() {
-    if (estimatedTimeSeconds != null) {
-      deviation = calculateDeviation(totalTimeSeconds, estimatedTimeSeconds!);
+    if (estimatedTimeMillis != null) {
+      deviation = calculateDeviation(totalTimeMillis, estimatedTimeMillis!);
     }
   }
 
   Duration updateElapsedTime() {
     final now = DateTime.now();
     final elapsed = now.difference(lastUpdated);
-    totalTime += elapsed;
-    todayTime += elapsed;
+    final elapsedMillis = elapsed.inMilliseconds;
+    totalTimeMillis += elapsedMillis;
+    todayTimeMillis += elapsedMillis;
     lastUpdated = now;
     return elapsed;
   }
@@ -109,5 +112,17 @@ class TimeEntry {
 
   late DateTime date;
 
-  late int seconds; // Tiempo en segundos
+  late int milliseconds;
+
+  @ignore
+  Duration get duration => Duration(milliseconds: milliseconds);
+
+  @ignore
+  int get seconds => duration.inSeconds;
+
+  @ignore
+  DateTime get day => DateTime(date.year, date.month, date.day);
+
+  @override
+  String toString() => '$day: $duration';
 }

@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:isar/isar.dart';
 
 import '../models/project.dart';
 import '../models/task.dart';
 import '../providers/navigation_provider.dart';
 
 abstract class ShowMessage {
-  static SnackBarController taskArchived(BuildContext context, Task task) =>
+  static SnackBarController? taskArchived(BuildContext context, Task task) =>
       show(
         context,
         'Tarea archivada',
@@ -18,7 +19,7 @@ abstract class ShowMessage {
         },
       );
 
-  static SnackBarController taskUnarchived(BuildContext context, Task task) =>
+  static SnackBarController? taskUnarchived(BuildContext context, Task task) =>
       show(
         context,
         'Tarea movida a las tareas activas',
@@ -29,7 +30,7 @@ abstract class ShowMessage {
         },
       );
 
-  static SnackBarController taskDeleted(
+  static SnackBarController? taskDeleted(
     BuildContext context,
     Task task,
     Function(Task) restoreTask,
@@ -45,7 +46,8 @@ abstract class ShowMessage {
         },
       );
 
-  static SnackBarController taskCopied(BuildContext context, Task task) => show(
+  static SnackBarController? taskCopied(BuildContext context, Task task) =>
+      show(
         context,
         'Se ha copiado la tarea',
         actionLabel: 'Ver',
@@ -55,7 +57,7 @@ abstract class ShowMessage {
         },
       );
 
-  static SnackBarController projectDeleted(
+  static SnackBarController? projectDeleted(
     BuildContext context,
     Project project,
     Function(Project) restoreProject,
@@ -71,13 +73,28 @@ abstract class ShowMessage {
         },
       );
 
-  static SnackBarController show(
+  static SnackBarController? error(BuildContext context, String message) {
+    if (!context.mounted)
+      return null; // TODO: Use a global BuildContext to show snackbars for the whole app
+    return show(
+      context,
+      message,
+      backgroundColor: Theme.of(context).colorScheme.error,
+      foregroundColor: Theme.of(context).colorScheme.onError,
+    );
+  }
+
+  static SnackBarController? show(
     BuildContext context,
     String message, {
     int seconds = 3,
     String? actionLabel,
     VoidCallback? onAction,
+    Color? backgroundColor,
+    Color? foregroundColor,
   }) {
+    if (!context.mounted) return null;
+
     hideCurrentSnackBar(context); // Cerrar cualquier SnackBar existente
 
     bool hasAction = actionLabel != null && onAction != null;
@@ -87,9 +104,10 @@ abstract class ShowMessage {
         height: 30,
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text(message),
+          child: Text(message, style: TextStyle(color: foregroundColor)),
         ),
       ),
+      backgroundColor: backgroundColor,
       duration: Duration(seconds: seconds),
       action: hasAction
           ? SnackBarAction(
@@ -122,3 +140,17 @@ abstract class ShowMessage {
 
 typedef SnackBarController
     = ScaffoldFeatureController<SnackBar, SnackBarClosedReason>;
+
+Future<T?> tryOrShowError<T>(
+  BuildContext context,
+  Future<T?> Function() callback,
+  String errorMessage,
+) async {
+  try {
+    return await callback();
+  } catch (e) {
+    debugPrint('${errorMessage}: $e');
+    ShowMessage.error(context, errorMessage);
+    return null;
+  }
+}

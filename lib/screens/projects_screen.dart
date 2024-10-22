@@ -3,9 +3,22 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/project_provider.dart';
+import '../utils/message.dart';
 import 'project_details_screen.dart';
 
-class ProjectsScreen extends StatelessWidget {
+class ProjectsScreen extends StatefulWidget {
+  @override
+  State<ProjectsScreen> createState() => _ProjectsScreenState();
+}
+
+class _ProjectsScreenState extends State<ProjectsScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Recarga los proyectos cuando la pantalla se vuelve a mostrar
+    context.read<ProjectProvider>().loadProjects();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ProjectProvider>(
@@ -16,33 +29,39 @@ class ProjectsScreen extends StatelessWidget {
           appBar: AppBar(
             title: const Text('Proyectos'),
           ),
-          body: ListView.builder(
-            itemCount: projects.length,
-            itemBuilder: (_, index) {
-              final project = projects[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: project.color,
-                  radius: 16,
+          body: projects.isEmpty
+              ? Center(child: const Text('No hay proyectos'))
+              : ListView.builder(
+                  itemCount: projects.length,
+                  itemBuilder: (_, index) {
+                    final project = projects[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: project.color,
+                        radius: 16,
+                      ),
+                      title: Text(
+                        project.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ProjectDetailsScreen(project: project),
+                          ),
+                        ).then((_) {
+                          // Recarga los proyectos cuando la pantalla se vuelve a mostrar
+                          context.read<ProjectProvider>().loadProjects();
+                        });
+                      },
+                    );
+                  },
                 ),
-                title: Text(
-                  project.name,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProjectDetailsScreen(project: project),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
           floatingActionButton: Tooltip(
             message: 'Añadir proyecto',
             child: FloatingActionButton(
@@ -71,8 +90,7 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final projectProvider =
-        Provider.of<ProjectProvider>(context, listen: false);
+    final projectProvider = Provider.of<ProjectProvider>(context);
     return AlertDialog(
       title: Text('Añadir proyecto'),
       content: Form(
@@ -131,8 +149,11 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();
-              await projectProvider.createProject(_name, _selectedColor);
-              Navigator.pop(context);
+
+              await tryOrShowError(context, () async {
+                await projectProvider.createProject(_name, _selectedColor);
+                Navigator.pop(context);
+              }, 'No se ha podido crear el proyecto');
             }
           },
         ),

@@ -19,7 +19,7 @@ class TaskDetailsScreen extends StatefulWidget {
 }
 
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
-  List<Map<String, dynamic>> _chartData = [];
+  List<({int dayIndex, double seconds})> _chartData = [];
   List<String> _chartLabels = [];
 
   @override
@@ -30,13 +30,16 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   Future<void> _loadTimeHistory() async {
     await widget.task.timeHistory.load();
+
     final entries = widget.task.timeHistory.toList();
 
     // Filtrar la última semana
     final now = DateTime.now();
     final lastWeek = now.subtract(Duration(days: 7));
     final recentEntries =
-        entries.where((e) => e.date.isAfter(lastWeek)).toList();
+        entries.where((e) => e.day.isAfter(lastWeek)).toList();
+
+    debugPrint('entries: ${entries.length}, recentEntries: $recentEntries');
 
     // Ordenar por fecha
     recentEntries.sort((a, b) => a.date.compareTo(b.date));
@@ -45,10 +48,12 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     _chartLabels = [];
     _chartData = [];
 
-    for (var i = 0; i < recentEntries.length; i++) {
-      final entry = recentEntries[i];
+    for (var (int i, TimeEntry entry) in recentEntries.indexed) {
       _chartLabels.add('${entry.date.day}/${entry.date.month}');
-      _chartData.add({'day': i, 'seconds': entry.seconds.toDouble()});
+      _chartData.add((
+        dayIndex: i,
+        seconds: entry.duration.totalSeconds,
+      ));
     }
 
     setState(() {});
@@ -57,11 +62,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   double _getMaxY() {
     double max = 0;
     for (var entry in _chartData) {
-      if (entry['seconds'] > max) {
-        max = entry['seconds'];
+      if (entry.seconds > max) {
+        max = entry.seconds;
       }
     }
-    return max + 60; // Añade un margen
+    return max + 10; // Añade un margen
   }
 
   @override
@@ -101,28 +106,27 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<Project?>(
-        future:
-            widget.task.project.load().then((_) => widget.task.project.value),
-        builder: (_, snapshot) {
-          final project = snapshot.data;
-          return Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Título editable
-                GestureDetector(
-                  onTap: () => _editTitle(context, taskProvider),
-                  child: Text(
-                    widget.task.title,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                SizedBox(height: 10),
-                // Etiqueta del Proyecto
-                if (project != null)
-                  GestureDetector(
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título editable
+            GestureDetector(
+              onTap: () => _editTitle(context, taskProvider),
+              child: Text(
+                widget.task.title,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+            SizedBox(height: 10),
+            // Etiqueta del Proyecto
+            FutureBuilder<Project?>(
+                future: widget.task.getProject(),
+                builder: (_, snapshot) {
+                  final project = snapshot.data;
+                  if (project == null) return const SizedBox.shrink();
+                  return GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
@@ -134,7 +138,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      // FIXME: El color se muestra siempre label blanco sobre fondo azul
                       child: Chip(
                         label: Text(
                           project.name,
@@ -143,116 +146,172 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                         backgroundColor: project.color,
                       ),
                     ),
+                  );
+                }),
+            if (widget.task.estimatedTimeMillis != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child:
+                    Text('Estimación:  ${widget.task.estimatedTime?.format()}'),
+              ),
+            if (widget.task.archived)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Esta tarea está archivada',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.outline,
                   ),
-                if (widget.task.estimatedTimeSeconds != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: Text(
-                        'Estimación:  ${widget.task.estimatedTime?.format()}'),
-                  ),
-                if (widget.task.archived)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Text(
-                      'Esta tarea está archivada',
+                ),
+              ),
+            // Tiempo
+            if (!widget.task.archived && widget.task.todayTimeMillis > 0)
+              Text('Hoy:    ${widget.task.todayTime.format()}'),
+            if (widget.task.totalTimeMillis > 0)
+              Text('Total:  ${widget.task.totalTime.format()}'),
+            SizedBox(height: 10),
+            if (!widget.task.archived)
+              // Botón Play/Pause
+              ElevatedButton.icon(
+                icon: Icon(
+                    widget.task.isRunning ? Icons.pause : Icons.play_arrow),
+                label: Text(widget.task.timerLabel),
+                onPressed: () {
+                  taskProvider.toggleTaskTimer(widget.task);
+                  if (!widget.task.isRunning) {
+                    _loadTimeHistory();
+                  }
+                },
+              ),
+            SizedBox(height: 20),
+            // Estadísticas
+            if (widget.task.estimatedTimeMillis != null &&
+                widget.task.estimatedTimeMillis! > 0)
+              // Desviación
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Desviación media: ',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    TextSpan(
+                      text: '${widget.task.deviation.round()}%',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.outline,
+                        fontSize: 16,
+                        color: widget.task.deviation > 100
+                            ? Colors.red
+                            : Colors.green,
                       ),
                     ),
-                  ),
-                // Tiempo
-                if (!widget.task.archived && widget.task.todayTimeSeconds > 0)
-                  Text('Hoy:    ${widget.task.todayTime.format()}'),
-                if (widget.task.totalTimeSeconds > 0)
-                  Text('Total:  ${widget.task.totalTime.format()}'),
-                SizedBox(height: 10),
-                if (!widget.task.archived)
-                  // Botón Play/Pause
-                  ElevatedButton.icon(
-                    icon: Icon(
-                        widget.task.isRunning ? Icons.pause : Icons.play_arrow),
-                    label: Text(widget.task.timerLabel),
-                    onPressed: () {
-                      taskProvider.toggleTaskTimer(widget.task);
-                      if (!widget.task.isRunning) {
-                        _loadTimeHistory();
-                      }
-                    },
-                  ),
-                SizedBox(height: 20),
-                // Estadísticas
-                if (widget.task.estimatedTimeSeconds != null &&
-                    widget.task.estimatedTimeSeconds! > 0)
-                  // Desviación
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Desviación media: ',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        TextSpan(
-                          text: '${widget.task.deviation.round()}%',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: widget.task.deviation > 100
-                                ? Colors.red
-                                : Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                SizedBox(height: 20),
-                // Gráfico con fl_chart
-                // FIXME: El eje vertical muestra los labels sin espacio suficiente y hace wrap
-                Expanded(
-                  child: _chartData.isNotEmpty
-                      ? BarChart(
-                          BarChartData(
-                            alignment: BarChartAlignment.spaceAround,
-                            maxY: _getMaxY(),
-                            barTouchData: BarTouchData(enabled: false),
-                            titlesData: FlTitlesData(
-                              leftTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: true)),
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (double value, _) {
-                                    if (value.toInt() < _chartLabels.length) {
-                                      return SideTitleWidget(
-                                        axisSide: AxisSide.bottom,
-                                        child:
-                                            Text(_chartLabels[value.toInt()]),
-                                      );
-                                    }
-                                    return const SizedBox.shrink();
-                                  },
-                                ),
+                  ],
+                ),
+              ),
+            SizedBox(height: 20),
+            // Gráfico de tiempo por día
+            Expanded(
+              child: _chartData.isNotEmpty
+                  ? BarChart(
+                      BarChartData(
+                        alignment: BarChartAlignment.spaceAround,
+                        maxY: _getMaxY(),
+                        barTouchData: BarTouchData(enabled: false),
+                        titlesData: FlTitlesData(
+                          leftTitles: AxisTitles(
+                            axisNameWidget: Text(
+                              'Tiempo (s)', // Y
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            borderData: FlBorderData(show: false),
-                            barGroups: _chartData.map((entry) {
-                              return BarChartGroupData(
-                                x: entry['day'] as int,
-                                barRods: [
-                                  BarChartRodData(
-                                    toY: entry['seconds'] as double,
-                                    color: Colors.blue,
-                                  ),
-                                ],
-                              );
-                            }).toList(),
+                            axisNameSize: 30,
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 30,
+                              interval: 5,
+                              getTitlesWidget: (value, _) {
+                                // múltiplos de 5
+                                if (value % 5 == 0) {
+                                  return SideTitleWidget(
+                                    axisSide: AxisSide.left,
+                                    child: Text(
+                                      value.toInt().toString(),
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
                           ),
-                        )
-                      : Center(child: Text('No hay datos para el gráfico')),
-                ),
-              ],
+                          rightTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          bottomTitles: AxisTitles(
+                            axisNameWidget: Text(
+                              'Día', // X
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            axisNameSize: 30,
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 30,
+                              getTitlesWidget: (double value, _) {
+                                if (value.toInt() < _chartLabels.length) {
+                                  return SideTitleWidget(
+                                    axisSide: AxisSide.bottom,
+                                    child: Text(
+                                      _chartLabels[value.toInt()],
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                          ),
+                          topTitles: AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                        ),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          drawHorizontalLine: true,
+                          horizontalInterval: 5,
+                          getDrawingHorizontalLine: (value) {
+                            return FlLine(
+                              color: Colors.grey,
+                              strokeWidth: 0.6,
+                              dashArray: [5, 5],
+                            );
+                          },
+                        ),
+                        borderData: FlBorderData(show: false),
+                        barGroups: _chartData.map((entry) {
+                          return BarChartGroupData(
+                            x: entry.dayIndex,
+                            barRods: [
+                              BarChartRodData(
+                                toY: entry.seconds,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryFixedDim,
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    )
+                  : Center(child: Text('No hay datos para el gráfico')),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

@@ -21,12 +21,16 @@ class Project {
   Color get color => _color;
 
   set color(Color color) {
-    this.colorValue = color.value;
-    _color = color;
-    _labelColor =
-        _color.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
+    colorValue = color.value;
+    update();
   }
 
   @ignore
   Color get labelColor => _labelColor;
+
+  void update() {
+    _color = Color(colorValue);
+    _labelColor =
+        _color.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
+  }
 }

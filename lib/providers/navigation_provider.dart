@@ -17,7 +17,7 @@ class NavigationProvider with ChangeNotifier {
 
   static void navigateToPage(BuildContext context, AppPage page) {
     if (!context.mounted) return;
-    Provider.of<NavigationProvider>(context, listen: false).setPage(page);
+    context.read<NavigationProvider>().setPage(page);
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }

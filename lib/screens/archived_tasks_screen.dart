@@ -5,6 +5,7 @@ import '../models/project.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../utils/time.dart';
+import '../widgets/project_tag.dart';
 import 'task_details_screen.dart';
 
 class ArchivedTasksScreen extends StatelessWidget {
@@ -42,17 +43,18 @@ class ArchivedTasksScreen extends StatelessWidget {
                         color: Colors.red,
                         alignment: Alignment.centerLeft,
                         padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Icon(Icons.delete, color: Colors.white),
+                        child: const Icon(Icons.delete, color: Colors.white),
                       ),
                       secondaryBackground: Container(
                         color: Colors.green,
                         alignment: Alignment.centerRight,
                         padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: Icon(Icons.unarchive, color: Colors.white),
+                        child: const Icon(Icons.unarchive, color: Colors.white),
                       ),
                       child: ListTile(
                         // Título
-                        title: Row(
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Proyecto (etiqueta)
                             FutureBuilder<Project?>(
@@ -62,23 +64,9 @@ class ArchivedTasksScreen extends StatelessWidget {
                                   final project = snapshot.data!;
                                   return Padding(
                                     padding: const EdgeInsets.only(right: 8),
-                                    child: Chip(
-                                      label: Text(
-                                        project.name,
-                                        style: TextStyle(
-                                          color: project.labelColor,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      backgroundColor: project.color,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: -4,
-                                      ),
-                                      visualDensity: VisualDensity(
-                                        horizontal: -3,
-                                        vertical: -3,
-                                      ),
+                                    child: ProjectTag(
+                                      project: project,
+                                      dense: 4,
                                     ),
                                   );
                                 }
@@ -86,20 +74,18 @@ class ArchivedTasksScreen extends StatelessWidget {
                               },
                             ),
                             // Título
-                            Expanded(
-                              child: Text(
-                                task.title,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            Text(
+                              task.title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
                         // Tiempo
                         subtitle: Text(
-                          task.todayTime.formatTime(),
+                          task.totalTime.formatTime(),
                           style: TextStyle(fontSize: 16),
                         ),
                         // Desarchivar / Copiar

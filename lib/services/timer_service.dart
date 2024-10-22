@@ -6,6 +6,9 @@ class TimerService {
   static final TimerService _instance = TimerService._();
   factory TimerService() => _instance;
 
+  // Duración del tick
+  static const tickDuration = Duration(seconds: 1);
+
   // Mapa que asocia el ID del cronómetro con su Timer
   final Map<int, Timer> _timers = {};
 
@@ -13,7 +16,7 @@ class TimerService {
   void startTimer(int id, Function onTick) {
     if (_timers.containsKey(id)) return; // Ya está corriendo
 
-    _timers[id] = Timer.periodic(Duration(seconds: 1), (timer) {
+    _timers[id] = Timer.periodic(tickDuration, (timer) {
       onTick();
     });
   }

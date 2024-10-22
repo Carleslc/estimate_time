@@ -7,29 +7,40 @@ part 'project.g.dart';
 class Project {
   Id id = Isar.autoIncrement;
 
+  /// Nombre del proyecto
   late String name;
 
-  late int colorValue; // ARGB
+  /// Color del proyecto en ARGB
+  int get colorValue => _colorValue;
+  @ignore
+  late int _colorValue;
 
+  set colorValue(int value) {
+    _colorValue = value;
+    _color = Color(colorValue);
+    _updateLuminance();
+  }
+
+  /// Color del proyecto
+  @ignore
+  Color get color => _color;
   @ignore
   Color _color = Colors.blue;
 
+  set color(Color color) {
+    _colorValue = color.value;
+    _color = color;
+    _updateLuminance();
+  }
+
+  /// Color del texto sobre el color del proyecto
+  @ignore
+  Color get labelColor => _labelColor;
   @ignore
   Color _labelColor = Colors.white;
 
-  @ignore
-  Color get color => _color;
-
-  set color(Color color) {
-    colorValue = color.value;
-    update();
-  }
-
-  @ignore
-  Color get labelColor => _labelColor;
-
-  void update() {
-    _color = Color(colorValue);
+  /// Actualiza el color del proyecto
+  void _updateLuminance() {
     _labelColor =
         _color.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
   }

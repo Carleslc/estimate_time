@@ -31,6 +31,10 @@ extension DurationFormatting on Duration {
 
   double get totalSeconds => inMicroseconds / Duration.microsecondsPerSecond;
 
+  double get totalMinutes => inMicroseconds / Duration.microsecondsPerMinute;
+
+  double get totalHours => inMicroseconds / Duration.microsecondsPerHour;
+
   (int hours, int minutes, int seconds) _timePartsRound() {
     double remainderSeconds = totalSeconds;
     // entire hours

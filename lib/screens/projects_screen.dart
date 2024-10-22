@@ -91,6 +91,7 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
   @override
   Widget build(BuildContext context) {
     final projectProvider = Provider.of<ProjectProvider>(context);
+
     return AlertDialog(
       title: Text('Añadir proyecto'),
       content: Form(
@@ -180,7 +181,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
     _currentColor = widget.initialColor;
   }
 
-  // Implementa un selector de color básico usando flutter_colorpicker
+  // Implementa un selector de color usando flutter_colorpicker
   @override
   Widget build(BuildContext context) {
     return AlertDialog(

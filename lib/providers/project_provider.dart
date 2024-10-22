@@ -26,9 +26,6 @@ class ProjectProvider with ChangeNotifier {
   Future<void> loadProjects() async {
     final isar = await isarService.db;
     _projects = await isar.projects.where().findAll();
-    for (var project in _projects) {
-      project.update();
-    }
     notifyListeners();
   }
 
@@ -39,8 +36,6 @@ class ProjectProvider with ChangeNotifier {
 
     await _addProject(project);
 
-    notifyListeners();
-
     return project;
   }
 
@@ -49,11 +44,12 @@ class ProjectProvider with ChangeNotifier {
     await updateProject(project); // DB
   }
 
-  Future<void> updateProject(Project project) async {
+  Future<void> updateProject(Project project, {bool notify = true}) async {
     final isar = await isarService.db;
     await isar.writeTxn(() async {
       await isar.projects.put(project);
     });
+    if (notify) notifyListeners();
   }
 
   Future<void> deleteProject(BuildContext context, Project project) {
@@ -102,7 +98,7 @@ class ProjectProvider with ChangeNotifier {
   Future<void> restoreProject(BuildContext context, Project project) async {
     return tryOrShowError(context, () async {
       // Restaurar el proyecto
-      await updateProject(project); // DB
+      await updateProject(project, notify: false); // DB
 
       // Obtener la instancia restaurada del proyecto
       final isar = await isarService.db;

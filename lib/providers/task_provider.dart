@@ -98,9 +98,8 @@ class TaskProvider with ChangeNotifier {
     if (timerService.isRunning(task.id)) return;
 
     // Inicia el cronómetro
-    timerService.startTimer(task.id, () {
-      final elapsed = task.updateElapsedTime();
-      _updateTimeHistory(task, elapsed);
+    timerService.startTimer(task.id, () async {
+      await _updateTime(task);
       notifyListeners();
     });
 
@@ -111,35 +110,26 @@ class TaskProvider with ChangeNotifier {
   }
 
   void _resumeTimer(Task task) {
-    final elapsed = task.updateElapsedTime();
-
-    // Actualizar historial
-    _updateTimeHistory(task, elapsed);
-
-    // Calcular desviación
-    task.updateDeviation();
+    // Actualizar tiempo
+    _updateTime(task);
 
     // Inicia el cronómetro
     _runTimer(task);
   }
 
-  Future<void> pauseTimer(Task task, {bool notify = true}) async {
+  Future<void> pauseTimer(Task task) async {
     if (!task.isRunning) return;
 
-    final elapsed = task.updateElapsedTime();
-
-    // Pausar el cronómetro
+    // Pausa el cronómetro
     timerService.stopTimer(task.id);
 
+    // Actualizar historial
+    await _updateTime(task);
+
+    // Actualiza el estado
     task.isRunning = false;
 
-    // Actualizar historial
-    await _updateTimeHistory(task, elapsed);
-
-    // Calcular desviación
-    task.updateDeviation();
-
-    await updateTask(task, notify: notify);
+    await updateTask(task);
   }
 
   Future<void> toggleTaskTimer(Task task) async {
@@ -150,32 +140,26 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _updateTimeHistory(Task task, Duration elapsed) async {
+  Future<void> _updateTime(Task task) async {
+    // Actualizar tiempo
+    final (now, elapsed) = task.updateElapsedTime();
+
+    // Actualizar historial de tiempo
     final isar = await isarService.db;
     await task.timeHistory.load();
 
-    final now = DateTime.now();
-
     await isar.writeTxn(() async {
-      TimeEntry? timeEntry;
+      TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
 
-      // TODO: Reverse iteration (recent entries are added last)
-      for (TimeEntry entry in task.timeHistory) {
-        if (isSameDay(entry.date, now)) {
-          timeEntry = entry;
-          break;
-        }
-      }
-
-      if (timeEntry == null) {
+      if (timeEntry == null || !isSameDay(timeEntry.date, now)) {
         // Crear un nuevo TimeEntry
         timeEntry = TimeEntry()
           ..date = now
           ..milliseconds = elapsed.inMilliseconds;
         // Añadir el nuevo TimeEntry
+        task.todayTimeEntry = timeEntry;
         await isar.timeEntries.put(timeEntry);
         task.timeHistory.add(timeEntry);
-        await isar.tasks.put(task);
       } else {
         // Actualizar el TimeEntry existente
         timeEntry.milliseconds += elapsed.inMilliseconds;
@@ -190,10 +174,8 @@ class TaskProvider with ChangeNotifier {
       // Archiva la tarea (UI)
       _tasks.remove(task);
 
-      notifyListeners();
-
       // Pausa el cronómetro antes de archivar la tarea
-      await pauseTimer(task, notify: false);
+      await pauseTimer(task);
 
       // Archiva la tarea (DB)
       task.archived = true;

@@ -7,6 +7,8 @@ import '../models/task.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/time.dart';
+import '../widgets/project_tag.dart';
+import '../widgets/timer_button.dart';
 import 'project_details_screen.dart';
 
 class TaskDetailsScreen extends StatefulWidget {
@@ -19,27 +21,27 @@ class TaskDetailsScreen extends StatefulWidget {
 }
 
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
-  List<({int dayIndex, double seconds})> _chartData = [];
+  List<TimeEntry> _entries = [];
+
+  List<({int dayIndex, double minutes})> _chartData = [];
   List<String> _chartLabels = [];
 
   @override
   void initState() {
     super.initState();
-    _loadTimeHistory();
+    _updateTimeHistoryChart();
   }
 
-  Future<void> _loadTimeHistory() async {
+  Future<void> _updateTimeHistoryChart({bool setState = true}) async {
     await widget.task.timeHistory.load();
 
-    final entries = widget.task.timeHistory.toList();
+    _entries = widget.task.timeHistory.toList();
 
     // Filtrar la última semana
     final now = DateTime.now();
     final lastWeek = now.subtract(Duration(days: 7));
     final recentEntries =
-        entries.where((e) => e.day.isAfter(lastWeek)).toList();
-
-    debugPrint('entries: ${entries.length}, recentEntries: $recentEntries');
+        _entries.where((e) => e.day.isAfter(lastWeek)).toList();
 
     // Ordenar por fecha
     recentEntries.sort((a, b) => a.date.compareTo(b.date));
@@ -52,25 +54,35 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       _chartLabels.add('${entry.date.day}/${entry.date.month}');
       _chartData.add((
         dayIndex: i,
-        seconds: entry.duration.totalSeconds,
+        minutes: entry.duration.totalMinutes,
       ));
     }
 
-    setState(() {});
+    // debugPrint(
+    //     '${widget.task.title} _updateTimeHistoryChart ${DateTime.now()}');
+
+    if (setState) this.setState(() {});
   }
 
-  double _getMaxY() {
-    double max = 0;
-    for (var entry in _chartData) {
-      if (entry.seconds > max) {
-        max = entry.seconds;
-      }
-    }
-    return max + 10; // Añade un margen
+  double get _maxY {
+    double max = _chartData.fold(
+      0, // default
+      (max, entry) => entry.minutes > max ? entry.minutes : max,
+    );
+    return max + 2; // Añade un margen (15 mins)
+  }
+
+  String get _progressOrDeviation {
+    int progressEstimation = widget.task.progressEstimation.round();
+    return progressEstimation <= 100
+        ? '${progressEstimation.round()}%'
+        : '+${widget.task.deviation.round()}%';
   }
 
   @override
   Widget build(BuildContext context) {
+    _updateTimeHistoryChart(setState: false);
+
     final taskProvider = Provider.of<TaskProvider>(context);
 
     return Scaffold(
@@ -114,9 +126,16 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             // Título editable
             GestureDetector(
               onTap: () => _editTitle(context, taskProvider),
-              child: Text(
-                widget.task.title,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.task.title,
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
             ),
             SizedBox(height: 10),
@@ -138,13 +157,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: Chip(
-                        label: Text(
-                          project.name,
-                          style: TextStyle(color: project.labelColor),
-                        ),
-                        backgroundColor: project.color,
-                      ),
+                      child: ProjectTag(project: project),
                     ),
                   );
                 }),
@@ -166,21 +179,20 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 ),
               ),
             // Tiempo
-            if (!widget.task.archived && widget.task.todayTimeMillis > 0)
-              Text('Hoy:    ${widget.task.todayTime.format()}'),
+            if (!widget.task.archived && widget.task.todayTimeMillis != null)
+              Text('Hoy:    ${widget.task.todayTime!.format()}'),
             if (widget.task.totalTimeMillis > 0)
               Text('Total:  ${widget.task.totalTime.format()}'),
             SizedBox(height: 10),
             if (!widget.task.archived)
-              // Botón Play/Pause
-              ElevatedButton.icon(
-                icon: Icon(
-                    widget.task.isRunning ? Icons.pause : Icons.play_arrow),
-                label: Text(widget.task.timerLabel),
+              // Play / Pause
+              TimerButton(
+                isRunning: widget.task.isRunning,
+                label: widget.task.timerLabel,
                 onPressed: () {
                   taskProvider.toggleTaskTimer(widget.task);
                   if (!widget.task.isRunning) {
-                    _loadTimeHistory();
+                    _updateTimeHistoryChart();
                   }
                 },
               ),
@@ -189,38 +201,41 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             if (widget.task.estimatedTimeMillis != null &&
                 widget.task.estimatedTimeMillis! > 0)
               // Desviación
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Desviación media: ',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    TextSpan(
-                      text: '${widget.task.deviation.round()}%',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: widget.task.deviation > 100
-                            ? Colors.red
-                            : Colors.green,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text:
+                            "${widget.task.progressEstimation <= 100 ? 'Progreso estimado' : 'Desviación'}: ",
+                        style: TextStyle(fontSize: 16),
                       ),
-                    ),
-                  ],
+                      TextSpan(
+                        text: _progressOrDeviation,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: widget.task.deviation <= 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            SizedBox(height: 20),
             // Gráfico de tiempo por día
             Expanded(
               child: _chartData.isNotEmpty
                   ? BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
-                        maxY: _getMaxY(),
+                        maxY: _maxY,
                         barTouchData: BarTouchData(enabled: false),
                         titlesData: FlTitlesData(
                           leftTitles: AxisTitles(
                             axisNameWidget: Text(
-                              'Tiempo (s)', // Y
+                              'Tiempo (mins)', // Y
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -232,7 +247,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                               reservedSize: 30,
                               interval: 5,
                               getTitlesWidget: (value, _) {
-                                // múltiplos de 5
+                                // múltiplos de 5 mins
                                 if (value % 5 == 0) {
                                   return SideTitleWidget(
                                     axisSide: AxisSide.left,
@@ -283,7 +298,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                           show: true,
                           drawVerticalLine: false,
                           drawHorizontalLine: true,
-                          horizontalInterval: 5,
+                          horizontalInterval: 5, // mins
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
                               color: Colors.grey,
@@ -298,7 +313,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                             x: entry.dayIndex,
                             barRods: [
                               BarChartRodData(
-                                toY: entry.seconds,
+                                toY: entry.minutes,
                                 color: Theme.of(context)
                                     .colorScheme
                                     .primaryFixedDim,
@@ -308,7 +323,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                         }).toList(),
                       ),
                     )
-                  : Center(child: Text('Sin tiempo registrado')),
+                  : widget.task.totalTimeMillis == 0
+                      ? const Center(child: Text('Sin tiempo registrado'))
+                      : const SizedBox.shrink(),
             ),
           ],
         ),
@@ -318,6 +335,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   void _editTitle(BuildContext context, TaskProvider taskProvider) {
     final _controller = TextEditingController(text: widget.task.title);
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(

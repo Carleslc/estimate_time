@@ -8,37 +8,66 @@ part 'task.g.dart';
 class Task {
   Id id = Isar.autoIncrement;
 
+  /// Título de la tarea
   late String title;
 
-  // Referencia opcional al proyecto
+  /// Referencia opcional al proyecto
   @Index()
   final project = IsarLink<Project>();
 
-  // Tiempo estimado en milisegundos
-  int? estimatedTimeMillis;
+  /// Tiempo estimado en milisegundos
+  int? get estimatedTimeMillis => _estimatedTimeMillis;
+  @ignore
+  int? _estimatedTimeMillis;
 
-  // Tiempo total acumulado en milisegundos
-  int totalTimeMillis = 0;
+  set estimatedTimeMillis(int? value) {
+    _estimatedTimeMillis = value;
+    _updateDeviation();
+  }
 
-  // Tiempo registrado hoy en milisegundos
-  int todayTimeMillis = 0;
+  /// Tiempo total acumulado en milisegundos
+  int get totalTimeMillis => _totalTimeMillis;
+  @ignore
+  int _totalTimeMillis = 0;
 
-  // Fecha de última actualización del tiempo registrado
+  set totalTimeMillis(int value) {
+    _totalTimeMillis = value;
+    _updateDeviation();
+  }
+
+  /// Fecha de última actualización del tiempo registrado
   DateTime lastUpdated = DateTime.now();
 
-  // Estado del cronómetro
+  /// Estado del cronómetro
   bool isRunning = false;
 
-  // Desviación calculada (se actualiza al pausar)
-  double deviation = 0.0;
-
-  // Historial de tiempo por día
-  final timeHistory = IsarLinks<TimeEntry>();
-
-  // Estado de la tarea (activa / archivada)
+  /// Estado de la tarea (activa / archivada)
   bool archived = false;
 
-  // Propiedades calculadas para Duration
+  /// Historial de tiempo por día
+  final timeHistory = IsarLinks<TimeEntry>();
+
+  /// Último tiempo diario registrado
+  @ignore
+  TimeEntry? get lastTimeEntry => timeHistory.lastOrNull;
+
+  /// Tiempo registrado hoy
+  @ignore
+  TimeEntry? todayTimeEntry;
+
+  /// Progreso estimado
+  @ignore
+  double get progressEstimation => _progressEstimation;
+  @ignore
+  double _progressEstimation = 0;
+
+  /// Desviación calculada
+  @ignore
+  double get deviation => _deviation;
+  @ignore
+  double _deviation = 0;
+
+  /// Duración estimada
   @ignore
   Duration? get estimatedTime => estimatedTimeMillis != null
       ? Duration(milliseconds: estimatedTimeMillis!)
@@ -48,6 +77,7 @@ class Task {
     estimatedTimeMillis = duration?.inMilliseconds;
   }
 
+  /// Tiempo total acumulado
   @ignore
   Duration get totalTime => Duration(milliseconds: totalTimeMillis);
 
@@ -55,21 +85,23 @@ class Task {
     totalTimeMillis = duration.inMilliseconds;
   }
 
+  /// Tiempo registrado hoy en milisegundos
   @ignore
-  Duration get todayTime => Duration(milliseconds: todayTimeMillis);
+  int? get todayTimeMillis => todayTimeEntry?.milliseconds;
 
-  set todayTime(Duration duration) {
-    todayTimeMillis = duration.inMilliseconds;
-  }
+  /// Tiempo registrado hoy
+  @ignore
+  Duration? get todayTime =>
+      todayTimeMillis != null ? Duration(milliseconds: todayTimeMillis!) : null;
 
+  /// Get linked project
   Future<Project?> getProject() async {
     if (project.value == null) return null;
     await project.load();
-    Project? loadedProject = project.value;
-    loadedProject?.update();
-    return loadedProject;
+    return project.value;
   }
 
+  /// Link project
   void setProject(Project? project) {
     this.project.value = project;
   }
@@ -85,20 +117,26 @@ class Task {
     }
   }
 
-  void updateDeviation() {
+  /// Calcular desviación
+  void _updateDeviation() {
     if (estimatedTimeMillis != null) {
-      deviation = calculateDeviation(totalTimeMillis, estimatedTimeMillis!);
+      _progressEstimation =
+          calculateProgressEstimation(totalTimeMillis, estimatedTimeMillis!);
+      _deviation = _progressEstimation - 100;
     }
   }
 
-  Duration updateElapsedTime() {
+  /// Calcular tiempo transcurrido desde la última actualización del tiempo
+  (DateTime now, Duration elapsed) updateElapsedTime() {
     final now = DateTime.now();
     final elapsed = now.difference(lastUpdated);
-    final elapsedMillis = elapsed.inMilliseconds;
-    totalTimeMillis += elapsedMillis;
-    todayTimeMillis += elapsedMillis;
+    totalTimeMillis += elapsed.inMilliseconds;
     lastUpdated = now;
-    return elapsed;
+    return (now, elapsed);
+  }
+
+  static double calculateProgressEstimation(int totalTime, int estimatedTime) {
+    return estimatedTime == 0 ? 0.0 : (totalTime / estimatedTime) * 100;
   }
 
   static double calculateDeviation(int totalTime, int estimatedTime) {
@@ -115,10 +153,10 @@ class TimeEntry {
   late int milliseconds;
 
   @ignore
-  Duration get duration => Duration(milliseconds: milliseconds);
+  int get seconds => duration.inSeconds;
 
   @ignore
-  int get seconds => duration.inSeconds;
+  Duration get duration => Duration(milliseconds: milliseconds);
 
   @ignore
   DateTime get day => DateTime(date.year, date.month, date.day);

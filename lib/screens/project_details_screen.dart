@@ -8,7 +8,9 @@ import '../providers/navigation_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/time.dart';
+import '../widgets/timer_button.dart';
 import 'active_tasks_screen.dart';
+import 'projects_screen.dart';
 import 'task_details_screen.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
@@ -21,32 +23,50 @@ class ProjectDetailsScreen extends StatefulWidget {
 }
 
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
-  List<({int dayIndex, double seconds})> _chartData = [];
+  List<Task> _projectTasks = [];
+
+  List<({int dayIndex, double hours})> _chartData = [];
   List<String> _chartLabels = [];
+
+  int _totalEstimatedMillis = 0;
+  int _totalMilliseconds = 0;
+  double _deviation = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadProjectTimeHistory();
+    _updateTimeHistoryChart();
   }
 
-  Future<void> _loadProjectTimeHistory() async {
+  Future<void> _updateTimeHistoryChart({bool setState = true}) async {
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-    final projectTasks = taskProvider.allTasks
+
+    // Tareas del proyecto
+    _projectTasks = taskProvider.allTasks
         .where((task) => task.project.value?.id == widget.project.id)
         .toList();
 
-    Map<DateTime, double> dailyTimeMap = {};
+    // Calcular tiempo total
+    _totalMilliseconds =
+        _projectTasks.fold(0, (sum, task) => sum + task.totalTimeMillis);
+    _totalEstimatedMillis = _projectTasks.fold(
+        0, (sum, task) => sum + (task.estimatedTimeMillis ?? 0));
+
+    // Calcular desviación media
+    _deviation =
+        Task.calculateDeviation(_totalMilliseconds, _totalEstimatedMillis);
+
+    Map<DateTime, Duration> dailyTimeMap = {};
 
     // Agrupar tiempo total de todas las tareas por día
-    for (Task task in projectTasks) {
+    for (Task task in _projectTasks) {
       await task.timeHistory.load();
 
       for (TimeEntry entry in task.timeHistory) {
         dailyTimeMap.update(
           entry.day,
-          (value) => value + entry.duration.totalSeconds,
-          ifAbsent: () => entry.duration.totalSeconds,
+          (value) => value + entry.duration,
+          ifAbsent: () => entry.duration,
         );
       }
     }
@@ -64,43 +84,35 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     _chartLabels = [];
     _chartData = [];
 
-    for (var (int i, MapEntry<DateTime, double> entry)
+    for (var (int i, MapEntry<DateTime, Duration> entry)
         in recentEntries.indexed) {
       _chartLabels.add('${entry.key.day}/${entry.key.month}');
       _chartData.add((
         dayIndex: i,
-        seconds: entry.value,
+        hours: entry.value.totalHours,
       ));
     }
 
-    setState(() {});
+    // debugPrint(
+    //     '${widget.project.name} _updateTimeHistoryChart ${DateTime.now()}');
+
+    if (setState) this.setState(() {});
   }
 
-  double _getMaxY() {
-    double max = 0;
-    for (var entry in _chartData) {
-      if (entry.seconds > max) {
-        max = entry.seconds;
-      }
-    }
-    return max + 10; // Añade un margen
+  double get _maxY {
+    double max = _chartData.fold(
+      0, // default
+      (max, entry) => entry.hours > max ? entry.hours : max,
+    );
+    return max + 1; // Añade un margen (1h)
   }
 
   @override
   Widget build(BuildContext context) {
+    _updateTimeHistoryChart(setState: false);
+
     final projectProvider = Provider.of<ProjectProvider>(context);
     final taskProvider = Provider.of<TaskProvider>(context);
-    final projectTasks = taskProvider.allTasks
-        .where((task) => task.project.value?.id == widget.project.id)
-        .toList();
-
-    // Calcular desviación media
-    int totalMilliseconds =
-        projectTasks.fold(0, (sum, task) => sum + task.totalTimeMillis);
-    int totalEstimatedMillis = projectTasks.fold(
-        0, (sum, task) => sum + (task.estimatedTimeMillis ?? 0));
-    double deviation =
-        Task.calculateDeviation(totalMilliseconds, totalEstimatedMillis);
 
     return Scaffold(
       appBar: AppBar(
@@ -148,26 +160,37 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Nombre con color
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: widget.project.color,
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: GestureDetector(
+                    onTap: () => _editColor(context, projectProvider),
+                    child: CircleAvatar(
+                      backgroundColor: widget.project.color,
+                    ),
+                  ),
                 ),
-                SizedBox(width: 10),
-                Text(
-                  widget.project.name,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _editName(context, projectProvider),
+                    child: Text(
+                      widget.project.name,
+                      style:
+                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ],
             ),
             SizedBox(height: 10),
             // Tiempo total
-            if (totalMilliseconds > 0)
+            if (_totalMilliseconds > 0)
               Text.rich(
                 TextSpan(
                   children: [
@@ -176,7 +199,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                       style: TextStyle(fontSize: 16),
                     ),
                     TextSpan(
-                      text: Duration(milliseconds: totalMilliseconds).format(),
+                      text: Duration(milliseconds: _totalMilliseconds).format(),
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -184,37 +207,40 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 ),
               ),
             SizedBox(height: 10),
-            // Desviación media
-            Text.rich(
-              TextSpan(
-                children: [
+            if (_totalEstimatedMillis > 0)
+              // Desviación media
+              Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Text.rich(
                   TextSpan(
-                    text: 'Desviación media: ',
-                    style: TextStyle(fontSize: 16),
+                    children: [
+                      TextSpan(
+                        text: 'Desviación media: ',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      TextSpan(
+                        text: '${_deviation.round()}%',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: _deviation > 0 ? Colors.red : Colors.green,
+                        ),
+                      ),
+                    ],
                   ),
-                  TextSpan(
-                    text: '${deviation.round()}%',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: deviation > 100 ? Colors.red : Colors.green,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            SizedBox(height: 20),
             // Gráfico de tiempo total por día
             if (_chartData.isNotEmpty)
               Expanded(
                 child: BarChart(
                   BarChartData(
                     alignment: BarChartAlignment.spaceAround,
-                    maxY: _getMaxY(),
+                    maxY: _maxY,
                     barTouchData: BarTouchData(enabled: false),
                     titlesData: FlTitlesData(
                       leftTitles: AxisTitles(
                         axisNameWidget: Text(
-                          'Tiempo (s)', // Etiqueta del eje Y
+                          'Tiempo (h)', // Etiqueta del eje Y
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -224,14 +250,14 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                         sideTitles: SideTitles(
                           showTitles: true,
                           reservedSize: 30,
-                          interval: 5,
+                          interval: 0.5,
                           getTitlesWidget: (value, _) {
-                            // Mostrar solo múltiplos de 5
-                            if (value % 5 == 0) {
+                            // múltiplos de 0.5h (30 mins)
+                            if (value % 0.5 == 0) {
                               return SideTitleWidget(
                                 axisSide: AxisSide.left,
                                 child: Text(
-                                  value.toInt().toString(),
+                                  value.toString(),
                                   style: TextStyle(fontSize: 12),
                                 ),
                               );
@@ -277,7 +303,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                       show: true,
                       drawVerticalLine: false,
                       drawHorizontalLine: true,
-                      horizontalInterval: 5,
+                      horizontalInterval: 0.25, // hrs (15 mins)
                       getDrawingHorizontalLine: (value) {
                         return FlLine(
                           color: Colors.grey,
@@ -292,7 +318,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                         x: entry.dayIndex,
                         barRods: [
                           BarChartRodData(
-                            toY: entry.seconds,
+                            toY: entry.hours,
                             color:
                                 Theme.of(context).colorScheme.primaryFixedDim,
                           ),
@@ -303,14 +329,16 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 ),
               )
             else
-              Center(child: Text('Sin tiempo registrado')),
+              _totalMilliseconds == 0
+                  ? const Center(child: Text('Sin tiempo registrado'))
+                  : const SizedBox.shrink(),
             SizedBox(height: 10),
             // Lista de Tareas
             Expanded(
               child: ListView.builder(
-                itemCount: projectTasks.length,
+                itemCount: _projectTasks.length,
                 itemBuilder: (_, index) {
-                  final task = projectTasks[index];
+                  final task = _projectTasks[index];
                   return ListTile(
                     title: Text(
                       task.title,
@@ -339,21 +367,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           )
                         :
                         // Cronómetro
-                        IconButton.filled(
-                            icon: Icon(task.isRunning
-                                ? Icons.pause
-                                : Icons.play_arrow),
-                            color: Colors.white,
-                            style: IconButton.styleFrom(
-                              iconSize: 26,
-                              backgroundColor: task.isRunning
-                                  ? Colors.red.shade400
-                                  : Colors.green.shade400,
-                            ),
+                        TimerButton(
+                            isRunning: task.isRunning,
+                            iconSize: 26,
                             onPressed: () {
                               taskProvider.toggleTaskTimer(task);
                               if (!task.isRunning) {
-                                _loadProjectTimeHistory();
+                                _updateTimeHistoryChart();
                               }
                             },
                           ),
@@ -378,14 +398,54 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           child: Icon(Icons.add_box),
           onPressed: () => showDialog(
             context: context,
-            builder: (_) => AddTaskDialog(
-              project: projectProvider.projects.firstWhere(
-                (project) => project.id == widget.project.id,
-              ),
-            ),
+            builder: (_) => AddTaskDialog(projectId: widget.project.id),
           ),
         ),
       ),
     );
+  }
+
+  void _editName(BuildContext context, ProjectProvider projectProvider) {
+    final _controller = TextEditingController(text: widget.project.name);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Editar nombre'),
+        content: TextField(
+          controller: _controller,
+          decoration: InputDecoration(labelText: 'Nombre'),
+        ),
+        actions: [
+          TextButton(
+            child: Text('Cancelar'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            child: Text('Guardar'),
+            onPressed: () async {
+              final newName = _controller.text.trim();
+              if (newName.isNotEmpty) {
+                widget.project.name = newName;
+                await projectProvider.updateProject(widget.project);
+                Navigator.pop(context); // Cerrar Dialog
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editColor(BuildContext context, ProjectProvider projectProvider) async {
+    Color? color = await showDialog(
+      context: context,
+      builder: (_) => ColorPickerDialog(initialColor: widget.project.color),
+    );
+
+    if (color != null) {
+      widget.project.color = color;
+      await projectProvider.updateProject(widget.project);
+    }
   }
 }

@@ -308,7 +308,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                         }).toList(),
                       ),
                     )
-                  : Center(child: Text('No hay datos para el gráfico')),
+                  : Center(child: Text('Sin tiempo registrado')),
             ),
           ],
         ),

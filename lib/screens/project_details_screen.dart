@@ -303,7 +303,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 ),
               )
             else
-              Center(child: Text('No hay datos para el gráfico')),
+              Center(child: Text('Sin tiempo registrado')),
             SizedBox(height: 10),
             // Lista de Tareas
             Expanded(

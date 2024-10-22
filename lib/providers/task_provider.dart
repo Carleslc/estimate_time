@@ -187,15 +187,19 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> archiveTask(BuildContext context, Task task) {
     return tryOrShowError(context, () async {
+      // Archiva la tarea (UI)
+      _tasks.remove(task);
+
+      notifyListeners();
+
       // Pausa el cronómetro antes de archivar la tarea
       await pauseTimer(task, notify: false);
 
-      // Archiva la tarea
+      // Archiva la tarea (DB)
       task.archived = true;
       await updateTask(task, notify: false);
 
-      // Actualiza la lista de tareas
-      _tasks.remove(task);
+      // Actualiza la lista de tareas (archived)
       await _loadArchivedTasks();
 
       notifyListeners();
@@ -206,12 +210,16 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> unarchiveTask(BuildContext context, Task task) {
     return tryOrShowError(context, () async {
-      // Desarchiva la tarea
+      // Desarchiva la tarea (UI)
+      _archivedTasks.remove(task);
+
+      notifyListeners();
+
+      // Desarchiva la tarea (DB)
       task.archived = false;
       await updateTask(task, notify: false);
 
-      // Actualiza la lista de tareas
-      _archivedTasks.remove(task);
+      // Actualiza la lista de tareas (active)
       await _loadActiveTasks();
 
       notifyListeners();
@@ -228,13 +236,13 @@ class TaskProvider with ChangeNotifier {
       _tasks.remove(task);
       _archivedTasks.remove(task);
 
+      notifyListeners();
+
       // Elimina la tarea (DB)
       final isar = await isarService.db;
       await isar.writeTxn(() async {
         await isar.tasks.delete(task.id);
       });
-
-      notifyListeners();
 
       ShowMessage.taskDeleted(context, task, (deletedTask) async {
         await restoreTask(context, deletedTask, linkedProject);

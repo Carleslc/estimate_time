@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +7,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/time.dart';
 import '../widgets/project_tag.dart';
+import '../widgets/time_chart.dart';
 import '../widgets/timer_button.dart';
 import 'project_details_screen.dart';
 
@@ -64,18 +64,10 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     if (setState) this.setState(() {});
   }
 
-  double get _maxY {
-    double max = _chartData.fold(
-      0, // default
-      (max, entry) => entry.minutes > max ? entry.minutes : max,
-    );
-    return max + 2; // Añade un margen (15 mins)
-  }
-
   String get _progressOrDeviation {
     int progressEstimation = widget.task.progressEstimation.round();
     return progressEstimation <= 100
-        ? '${progressEstimation.round()}%'
+        ? '${progressEstimation}%'
         : '+${widget.task.deviation.round()}%';
   }
 
@@ -90,6 +82,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         title: Text('Detalles de la tarea'),
         actions: [
           if (widget.task.archived)
+            // Eliminar tarea
             Tooltip(
               message: 'Eliminar',
               child: IconButton(
@@ -227,101 +220,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             // Gráfico de tiempo por día
             Expanded(
               child: _chartData.isNotEmpty
-                  ? BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: _maxY,
-                        barTouchData: BarTouchData(enabled: false),
-                        titlesData: FlTitlesData(
-                          leftTitles: AxisTitles(
-                            axisNameWidget: Text(
-                              'Tiempo (mins)', // Y
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            axisNameSize: 30,
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 30,
-                              interval: 5,
-                              getTitlesWidget: (value, _) {
-                                // múltiplos de 5 mins
-                                if (value % 5 == 0) {
-                                  return SideTitleWidget(
-                                    axisSide: AxisSide.left,
-                                    child: Text(
-                                      value.toInt().toString(),
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                          ),
-                          rightTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          bottomTitles: AxisTitles(
-                            axisNameWidget: Text(
-                              'Día', // X
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            axisNameSize: 30,
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 30,
-                              getTitlesWidget: (double value, _) {
-                                if (value.toInt() < _chartLabels.length) {
-                                  return SideTitleWidget(
-                                    axisSide: AxisSide.bottom,
-                                    child: Text(
-                                      _chartLabels[value.toInt()],
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                          ),
-                          topTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                        ),
-                        gridData: FlGridData(
-                          show: true,
-                          drawVerticalLine: false,
-                          drawHorizontalLine: true,
-                          horizontalInterval: 5, // mins
-                          getDrawingHorizontalLine: (value) {
-                            return FlLine(
-                              color: Colors.grey,
-                              strokeWidth: 0.6,
-                              dashArray: [5, 5],
-                            );
-                          },
-                        ),
-                        borderData: FlBorderData(show: false),
-                        barGroups: _chartData.map((entry) {
-                          return BarChartGroupData(
-                            x: entry.dayIndex,
-                            barRods: [
-                              BarChartRodData(
-                                toY: entry.minutes,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryFixedDim,
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
+                  ? TimeChart(
+                      chartData: _chartData,
+                      chartLabels: _chartLabels,
                     )
                   : widget.task.totalTimeMillis == 0
                       ? const Center(child: Text('Sin tiempo registrado'))

@@ -1,0 +1,145 @@
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+
+import '../utils/time.dart';
+
+class TimeChart extends StatelessWidget {
+  final List<({int dayIndex, double minutes})> chartData;
+  final List<String> chartLabels;
+  final String axisX;
+  late final double _maxY;
+
+  TimeChart({
+    Key? key,
+    required this.chartData,
+    required this.chartLabels,
+    this.axisX = 'Día',
+  }) : super(key: key) {
+    _maxY = chartData.fold(
+      0, // default
+      (max, entry) => entry.minutes > max ? entry.minutes : max,
+    );
+  }
+
+  double _intervalY(double maxY) {
+    if (maxY <= 5) {
+      return 1; // min
+    } else if (maxY <= 15) {
+      return 5; // mins
+    } else if (maxY <= 30) {
+      return 10; // mins
+    } else if (maxY <= hourInMinutes) {
+      return 15; // mins
+    } else if (maxY <= 8 * hourInMinutes) {
+      return hourInMinutes; // 1 h
+    } else if (maxY <= 48 * hourInMinutes) {
+      return 10 * hourInMinutes; // 10 h
+    } else {
+      return 24 * hourInMinutes; // 24 h
+    }
+  }
+
+  bool _axisYinMinutes(double maxY) => maxY <= hourInMinutes; // < 1h
+
+  @override
+  Widget build(BuildContext context) {
+    final intervalY = _intervalY(_maxY);
+    final axisYinMinutes = _axisYinMinutes(_maxY);
+
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: _maxY + intervalY, // maxY + margin
+        barTouchData: BarTouchData(enabled: false),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            axisNameWidget: Text(
+              'Tiempo (${axisYinMinutes ? 'mins' : 'hrs'})', // Y
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            axisNameSize: 30,
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: intervalY,
+              getTitlesWidget: (minutes, _) {
+                if (minutes % intervalY == 0) {
+                  return SideTitleWidget(
+                    axisSide: AxisSide.left,
+                    child: Text(
+                      axisYinMinutes
+                          ? minutes.toInt().toString()
+                          : (minutes / hourInMinutes).toStringAsFixed(0),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            axisNameWidget: Text(
+              axisX, // X
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            axisNameSize: 30,
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              getTitlesWidget: (double value, _) {
+                if (value.toInt() < chartLabels.length) {
+                  return SideTitleWidget(
+                    axisSide: AxisSide.bottom,
+                    child: Text(
+                      chartLabels[value.toInt()],
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          drawHorizontalLine: true,
+          horizontalInterval: intervalY / 2,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey,
+              strokeWidth: 0.6,
+              dashArray: [5, 5],
+            );
+          },
+        ),
+        borderData: FlBorderData(show: false),
+        barGroups: chartData.map((entry) {
+          return BarChartGroupData(
+            x: entry.dayIndex,
+            barRods: [
+              BarChartRodData(
+                toY: entry.minutes,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}

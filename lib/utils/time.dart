@@ -1,3 +1,5 @@
+final hourInMinutes = Duration.minutesPerHour.toDouble();
+
 extension DurationFormatting on Duration {
   static String twoDigits(int n) => n.toString().padLeft(2, '0');
 

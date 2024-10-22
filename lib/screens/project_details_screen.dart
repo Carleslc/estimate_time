@@ -1,4 +1,3 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,8 +7,9 @@ import '../providers/navigation_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/time.dart';
+import '../widgets/time_chart.dart';
 import '../widgets/timer_button.dart';
-import 'active_tasks_screen.dart';
+import 'add_task_dialog.dart';
 import 'projects_screen.dart';
 import 'task_details_screen.dart';
 
@@ -25,11 +25,12 @@ class ProjectDetailsScreen extends StatefulWidget {
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   List<Task> _projectTasks = [];
 
-  List<({int dayIndex, double hours})> _chartData = [];
+  List<({int dayIndex, double minutes})> _chartData = [];
   List<String> _chartLabels = [];
 
   int _totalEstimatedMillis = 0;
   int _totalMilliseconds = 0;
+  int _avgMilliseconds = 0;
   double _deviation = 0;
 
   @override
@@ -51,6 +52,11 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         _projectTasks.fold(0, (sum, task) => sum + task.totalTimeMillis);
     _totalEstimatedMillis = _projectTasks.fold(
         0, (sum, task) => sum + (task.estimatedTimeMillis ?? 0));
+
+    // Calcular tiempo medio
+    if (_projectTasks.length > 0) {
+      _avgMilliseconds = (_totalMilliseconds / _projectTasks.length).round();
+    }
 
     // Calcular desviación media
     _deviation =
@@ -89,7 +95,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       _chartLabels.add('${entry.key.day}/${entry.key.month}');
       _chartData.add((
         dayIndex: i,
-        hours: entry.value.totalHours,
+        minutes: entry.value.totalMinutes,
       ));
     }
 
@@ -97,14 +103,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     //     '${widget.project.name} _updateTimeHistoryChart ${DateTime.now()}');
 
     if (setState) this.setState(() {});
-  }
-
-  double get _maxY {
-    double max = _chartData.fold(
-      0, // default
-      (max, entry) => entry.hours > max ? entry.hours : max,
-    );
-    return max + 1; // Añade un margen (1h)
   }
 
   @override
@@ -191,22 +189,50 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             SizedBox(height: 10),
             // Tiempo total
             if (_totalMilliseconds > 0)
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Tiempo total: ',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    TextSpan(
-                      text: Duration(milliseconds: _totalMilliseconds).format(),
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Tiempo total: ',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      TextSpan(
+                        text:
+                            Duration(milliseconds: _totalMilliseconds).format(),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            SizedBox(height: 10),
+            // Tiempo medio
+            if (_projectTasks.length > 1 && _avgMilliseconds > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Tiempo medio: ',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      TextSpan(
+                        text: Duration(milliseconds: _avgMilliseconds)
+                            .format(withSeconds: false),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             if (_totalEstimatedMillis > 0)
               // Desviación media
               Padding(
@@ -232,100 +258,9 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             // Gráfico de tiempo total por día
             if (_chartData.isNotEmpty)
               Expanded(
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY: _maxY,
-                    barTouchData: BarTouchData(enabled: false),
-                    titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        axisNameWidget: Text(
-                          'Tiempo (h)', // Etiqueta del eje Y
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        axisNameSize: 30,
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 30,
-                          interval: 0.5,
-                          getTitlesWidget: (value, _) {
-                            // múltiplos de 0.5h (30 mins)
-                            if (value % 0.5 == 0) {
-                              return SideTitleWidget(
-                                axisSide: AxisSide.left,
-                                child: Text(
-                                  value.toString(),
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                      ),
-                      rightTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      bottomTitles: AxisTitles(
-                        axisNameWidget: Text(
-                          'Día', // Etiqueta del eje X
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        axisNameSize: 30,
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 30,
-                          getTitlesWidget: (double value, _) {
-                            if (value.toInt() < _chartLabels.length) {
-                              return SideTitleWidget(
-                                axisSide: AxisSide.bottom,
-                                child: Text(
-                                  _chartLabels[value.toInt()],
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                      ),
-                      topTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                    ),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      drawHorizontalLine: true,
-                      horizontalInterval: 0.25, // hrs (15 mins)
-                      getDrawingHorizontalLine: (value) {
-                        return FlLine(
-                          color: Colors.grey,
-                          strokeWidth: 0.6,
-                          dashArray: [5, 5],
-                        );
-                      },
-                    ),
-                    borderData: FlBorderData(show: false),
-                    barGroups: _chartData.map((entry) {
-                      return BarChartGroupData(
-                        x: entry.dayIndex,
-                        barRods: [
-                          BarChartRodData(
-                            toY: entry.hours,
-                            color:
-                                Theme.of(context).colorScheme.primaryFixedDim,
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
+                child: TimeChart(
+                  chartData: _chartData,
+                  chartLabels: _chartLabels,
                 ),
               )
             else
@@ -357,19 +292,18 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               icon: const Icon(Icons.copy),
                               color: Colors.white,
                               style: IconButton.styleFrom(
-                                iconSize: 26,
+                                iconSize: 28,
                                 backgroundColor: Colors.blue.shade800,
                               ),
-                              onPressed: () {
-                                taskProvider.copyTask(context, task);
-                              },
+                              onPressed: () =>
+                                  AddTaskDialog.showCopyDialog(context, task),
                             ),
                           )
                         :
                         // Cronómetro
                         TimerButton(
                             isRunning: task.isRunning,
-                            iconSize: 26,
+                            iconSize: 28,
                             onPressed: () {
                               taskProvider.toggleTaskTimer(task);
                               if (!task.isRunning) {

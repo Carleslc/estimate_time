@@ -6,6 +6,7 @@ import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../utils/time.dart';
 import '../widgets/project_tag.dart';
+import 'add_task_dialog.dart';
 import 'task_details_screen.dart';
 
 class ArchivedTasksScreen extends StatelessWidget {
@@ -110,11 +111,10 @@ class ArchivedTasksScreen extends StatelessWidget {
                                 icon: const Icon(Icons.copy),
                                 color: Colors.blue.shade800,
                                 style: IconButton.styleFrom(
-                                  iconSize: 28,
+                                  iconSize: 30,
                                 ),
-                                onPressed: () {
-                                  taskProvider.copyTask(context, task);
-                                },
+                                onPressed: () =>
+                                    AddTaskDialog.showCopyDialog(context, task),
                               ),
                             ),
                           ],

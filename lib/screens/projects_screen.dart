@@ -5,6 +5,8 @@ import '../providers/navigation_provider.dart';
 import '../providers/project_provider.dart';
 import 'add_project_dialog.dart';
 
+// TODO: Reordenar proyectos
+
 class ProjectsScreen extends StatefulWidget {
   @override
   State<ProjectsScreen> createState() => _ProjectsScreenState();
@@ -14,7 +16,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Recarga los proyectos cuando la pantalla se vuelve a mostrar
+    // Recarga los proyectos
     context.read<ProjectProvider>().loadProjects();
   }
 

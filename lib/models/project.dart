@@ -44,4 +44,9 @@ class Project {
     _labelColor =
         _color.computeLuminance() >= 0.5 ? Colors.black : Colors.white;
   }
+
+  @override
+  String toString() {
+    return 'Project(id: $id, name: $name, colorValue: $_colorValue)';
+  }
 }

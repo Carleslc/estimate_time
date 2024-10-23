@@ -1,6 +1,10 @@
 import 'package:isar/isar.dart';
 
+import '../utils/date.dart';
+import '../utils/duration.dart';
+import '../utils/log.dart';
 import 'project.dart';
+import 'time_entry.dart';
 
 part 'task.g.dart';
 
@@ -10,6 +14,9 @@ class Task {
 
   /// Título de la tarea
   late String title;
+
+  /// Descripción de la tarea
+  late String description;
 
   /// Referencia opcional al proyecto
   @Index()
@@ -131,6 +138,13 @@ class Task {
     final now = DateTime.now();
     final elapsed = now.difference(lastUpdated);
     totalTimeMillis += elapsed.inMilliseconds;
+    log(
+      enabled: false,
+      'Elapsed: ${(elapsed.inMilliseconds / Duration.millisecondsPerSecond).toStringAsFixed(3)}'
+      '  Now: ${now.formatTime()}'
+      '  From: ${lastUpdated.formatTime()}'
+      '  Total: $totalTime (${totalTime.format()})',
+    );
     lastUpdated = now;
     return (now, elapsed);
   }
@@ -142,25 +156,9 @@ class Task {
   static double calculateDeviation(int totalTime, int estimatedTime) {
     return estimatedTime == 0 ? 0.0 : ((totalTime / estimatedTime) - 1) * 100;
   }
-}
-
-@Collection(accessor: 'timeEntries')
-class TimeEntry {
-  Id id = Isar.autoIncrement;
-
-  late DateTime date;
-
-  late int milliseconds;
-
-  @ignore
-  int get seconds => duration.inSeconds;
-
-  @ignore
-  Duration get duration => Duration(milliseconds: milliseconds);
-
-  @ignore
-  DateTime get day => DateTime(date.year, date.month, date.day);
 
   @override
-  String toString() => '$day: $duration';
+  String toString() {
+    return 'Task(id: $id, title: $title, isRunning: $isRunning, archived: $archived)';
+  }
 }

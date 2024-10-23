@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/project_provider.dart';
 import '../utils/message.dart';
 import '../widgets/color_picker_dialog.dart';
+import '../widgets/required_field_label.dart';
 
 class AddProjectDialog extends StatefulWidget {
   @override
@@ -20,7 +21,7 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
     final projectProvider = Provider.of<ProjectProvider>(context);
 
     return AlertDialog(
-      title: Text('Añadir proyecto'),
+      title: const Text('Añadir proyecto'),
       content: Form(
         key: _formKey,
         child: Column(
@@ -28,7 +29,11 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
           children: [
             // Nombre
             TextFormField(
-              decoration: InputDecoration(labelText: 'Nombre'),
+              decoration: InputDecoration(
+                label: RequiredFieldLabel(
+                  labelText: 'Nombre',
+                ),
+              ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'El nombre es obligatorio';
@@ -37,6 +42,9 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
               },
               onSaved: (value) {
                 _name = value!.trim();
+              },
+              onTapOutside: (_) {
+                FocusScope.of(context).unfocus();
               },
             ),
             SizedBox(height: 10),
@@ -69,11 +77,14 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
       ),
       actions: [
         TextButton(
-          child: Text('Cancelar'),
+          child: const Text('Cancelar'),
           onPressed: () => Navigator.pop(context),
         ),
         ElevatedButton(
-          child: Text('Añadir'),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Text('Añadir'),
+          ),
           onPressed: () async {
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();

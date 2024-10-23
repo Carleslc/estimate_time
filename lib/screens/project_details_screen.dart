@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/project.dart';
 import '../models/task.dart';
+import '../models/time_entry.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/task_provider.dart';
@@ -108,7 +109,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
       ));
     }
 
-    // debugPrint(
+    // log(
     //     '${widget.project.name} _updateTimeHistoryChart ${DateTime.now()}');
 
     if (setState) this.setState(() {});
@@ -120,12 +121,12 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Detalles del proyecto'),
+        title: const Text('Detalles del proyecto'),
         actions: [
           Tooltip(
             message: 'Eliminar',
             child: IconButton(
-              icon: Icon(Icons.delete),
+              icon: const Icon(Icons.delete),
               onPressed: () async {
                 // Confirmación antes de eliminar
                 bool confirm = await showDialog(
@@ -138,11 +139,11 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                     ),
                     actions: [
                       TextButton(
-                        child: Text('Cancelar'),
+                        child: const Text('Cancelar'),
                         onPressed: () => Navigator.pop(context, false),
                       ),
                       ElevatedButton(
-                        child: Text('Eliminar'),
+                        child: const Text('Eliminar'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(context).colorScheme.error,
                           foregroundColor:
@@ -164,15 +165,16 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Nombre con color
+            // Nombre y color
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: Row(
                 children: [
+                  // Color
                   Padding(
                     padding: const EdgeInsets.only(right: 16),
                     child: GestureDetector(
@@ -182,13 +184,16 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                       ),
                     ),
                   ),
+                  // Nombre
                   Expanded(
                     child: GestureDetector(
                       onTap: () => _editName(context, projectProvider),
                       child: Text(
                         widget.project.name,
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -327,6 +332,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
             child: Text('Guardar'),
             onPressed: () async {
               final newName = _controller.text.trim();
+
               if (newName.isNotEmpty) {
                 widget.project.name = newName;
                 await projectProvider.updateProject(widget.project);

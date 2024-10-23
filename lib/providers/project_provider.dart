@@ -10,7 +10,7 @@ import '../utils/message.dart';
 import 'task_provider.dart';
 
 class ProjectProvider with ChangeNotifier {
-  final IsarService isarService;
+  final IsarService _isarService;
 
   List<Project> _projects = [];
 
@@ -19,12 +19,12 @@ class ProjectProvider with ChangeNotifier {
   // Mapa para gestionar proyectos eliminados y sus tareas vinculadas
   final Map<int, List<Task>> _deletedProjectTasks = {};
 
-  ProjectProvider(this.isarService) {
+  ProjectProvider(IsarService isarService) : _isarService = isarService {
     loadProjects();
   }
 
   Future<void> loadProjects() async {
-    final isar = await isarService.db;
+    final isar = await _isarService.db;
     _projects = await isar.projects.where().findAll();
     notifyListeners();
   }
@@ -45,7 +45,7 @@ class ProjectProvider with ChangeNotifier {
   }
 
   Future<void> updateProject(Project project, {bool notify = true}) async {
-    final isar = await isarService.db;
+    final isar = await _isarService.db;
     await isar.writeTxn(() async {
       await isar.projects.put(project);
     });
@@ -57,7 +57,7 @@ class ProjectProvider with ChangeNotifier {
       // Elimina el proyecto (UI)
       _projects.remove(project);
 
-      final isar = await isarService.db;
+      final isar = await _isarService.db;
 
       // Encontrar tareas vinculadas al proyecto
       final List<Task> linkedTasks = await isar.tasks
@@ -101,7 +101,7 @@ class ProjectProvider with ChangeNotifier {
       await updateProject(project, notify: false); // DB
 
       // Obtener la instancia restaurada del proyecto
-      final isar = await isarService.db;
+      final isar = await _isarService.db;
       final restoredProject = await isar.projects.get(project.id);
       if (restoredProject == null) {
         throw StateError('El proyecto no se pudo restaurar');

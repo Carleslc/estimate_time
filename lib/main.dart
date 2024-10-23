@@ -17,9 +17,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializa el locale para las fechas
-  String locale = Platform.localeName;
-  await initializeDateFormatting(locale);
-  Intl.defaultLocale = locale;
+  Intl.defaultLocale = Platform.localeName;
+  await initializeDateFormatting(Intl.defaultLocale);
 
   runApp(const EstimateTimeApp());
 }

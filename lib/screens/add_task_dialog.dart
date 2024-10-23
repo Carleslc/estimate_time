@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,17 +9,21 @@ import '../models/task.dart';
 import '../providers/project_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/message.dart';
+import '../utils/strings.dart';
+import '../widgets/required_field_label.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final int? projectId;
-  final String? initialTitle;
+  final String? title;
+  final String? description;
   final int? estimatedHours;
   final int? estimatedMinutes;
 
   const AddTaskDialog({
     super.key,
     this.projectId,
-    this.initialTitle,
+    this.title,
+    this.description,
     this.estimatedHours,
     this.estimatedMinutes,
   });
@@ -25,7 +32,8 @@ class AddTaskDialog extends StatefulWidget {
       : this(
           key: key,
           projectId: task.project.value?.id,
-          initialTitle: task.title,
+          title: task.title,
+          description: task.description,
           estimatedHours: task.estimatedTime?.inHours,
           estimatedMinutes:
               task.estimatedTime?.inMinutes.remainder(Duration.minutesPerHour),
@@ -49,8 +57,12 @@ class AddTaskDialog extends StatefulWidget {
 class _AddTaskDialogState extends State<AddTaskDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _estimatedHoursController = TextEditingController();
+  final _estimatedMinutesController = TextEditingController();
 
   late String _title;
+  late String _description;
   Project? _selectedProject;
   Duration? _estimatedTime;
 
@@ -59,14 +71,21 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
   List<Project> _availableProjects = [];
 
+  late bool _requiredTitle;
+
   @override
   void initState() {
     super.initState();
-    _title = widget.initialTitle ?? '';
+    _title = widget.title ?? '';
     _titleController.text = _title;
+    _description = widget.description ?? '';
+    _descriptionController.text = _description;
     _estimatedHours = widget.estimatedHours ?? 0;
+    _estimatedHoursController.text = _estimatedHours.toString();
     _estimatedMinutes = widget.estimatedMinutes ?? 0;
+    _estimatedMinutesController.text = _estimatedMinutes.toString();
     _loadAvailableProjects();
+    _requiredTitleUpdate();
   }
 
   void _loadAvailableProjects() async {
@@ -83,101 +102,178 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     });
   }
 
+  void _showTimePickerCupertino() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => Container(
+        height: 250,
+        color: Colors.white,
+        child: CupertinoTimerPicker(
+          mode: CupertinoTimerPickerMode.hm,
+          minuteInterval: 1,
+          initialTimerDuration: Duration(
+            hours: _estimatedHoursController.text.parseIntOrZero(),
+            minutes: _estimatedMinutesController.text.parseIntOrZero(),
+          ),
+          onTimerDurationChanged: (Duration pickDuration) {
+            setState(() {
+              _estimatedHours = pickDuration.inHours;
+              _estimatedHoursController.text = _estimatedHours.toString();
+              _estimatedMinutes = pickDuration.inMinutes.remainder(60);
+              _estimatedMinutesController.text = _estimatedMinutes.toString();
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void _requiredTitleUpdate() {
+    _requiredTitle =
+        _titleController.text.isNotEmpty && _titleController.text.isBlank;
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text('Nueva tarea'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Proyecto
-              DropdownButtonFormField<Project>(
-                decoration: InputDecoration(labelText: 'Proyecto'),
-                icon: widget.projectId == null
-                    ? const Icon(Icons.arrow_drop_down)
-                    : const SizedBox.shrink(),
-                items: [
-                  DropdownMenuItem(value: null, child: Text('–')),
-                  ..._availableProjects.map(
-                    (project) => DropdownMenuItem(
-                      value: project,
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: project.color,
-                            radius: 8,
-                          ),
-                          SizedBox(width: 8),
-                          Text(project.name),
-                        ],
+      insetPadding: const EdgeInsets.symmetric(
+        // Outside padding
+        horizontal: 50,
+        vertical: 20,
+      ),
+      content: SizedBox(
+        // Expand horizontally, max 300dp
+        width: min(300, MediaQuery.of(context).size.width),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Proyecto
+                DropdownButtonFormField<Project>(
+                  decoration: InputDecoration(labelText: 'Proyecto'),
+                  icon: widget.projectId == null
+                      ? const Icon(Icons.arrow_drop_down)
+                      : const SizedBox.shrink(),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text('–')),
+                    ..._availableProjects.map(
+                      (project) => DropdownMenuItem(
+                        value: project,
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: project.color,
+                              radius: 8,
+                            ),
+                            SizedBox(width: 8),
+                            Text(project.name),
+                          ],
+                        ),
                       ),
                     ),
+                  ],
+                  onChanged: widget.projectId != null
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _selectedProject = value;
+                          });
+                        },
+                  value: _selectedProject,
+                ),
+                SizedBox(height: 10),
+                // Título
+                TextFormField(
+                  controller: _titleController,
+                  decoration: InputDecoration(
+                    labelText: _requiredTitle ? null : 'Título',
+                    label: _requiredTitle
+                        ? RequiredFieldLabel(
+                            labelText: 'Título',
+                          )
+                        : null,
                   ),
-                ],
-                onChanged: widget.projectId != null
-                    ? null
-                    : (value) {
-                        setState(() {
-                          _selectedProject = value;
-                        });
-                      },
-                value: _selectedProject,
-              ),
-              SizedBox(height: 10),
-              // Título
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(labelText: 'Título'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El título es obligatorio';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  _title = value!.trim();
-                },
-              ),
-              SizedBox(height: 10),
-              // Tiempo Estimado
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      decoration: InputDecoration(labelText: 'Horas'),
-                      keyboardType: TextInputType.number,
-                      initialValue: _estimatedHours.toString(),
-                      onSaved: (value) {
-                        _estimatedHours = int.tryParse(value ?? '0') ?? 0;
-                      },
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      setState(() {
+                        _requiredTitleUpdate();
+                      });
+                      return 'El título es obligatorio';
+                    }
+                    return null;
+                  },
+                  onSaved: (value) {
+                    _title = value!.trim();
+                  },
+                  onTapOutside: (_) {
+                    FocusScope.of(context).unfocus();
+                  },
+                ),
+                SizedBox(height: 10),
+                // Descripción
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: InputDecoration(labelText: 'Descripción'),
+                  minLines: 2,
+                  maxLines: 10,
+                  // TODO: Avoid requesting focus on time picker close (same in title)
+                  canRequestFocus: true,
+                  onSaved: (value) {
+                    _description = value?.trim() ?? '';
+                  },
+                  onTapOutside: (_) {
+                    FocusScope.of(context).unfocus();
+                  },
+                ),
+                SizedBox(height: 10),
+                // Tiempo Estimado
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _estimatedHoursController,
+                        decoration: InputDecoration(labelText: 'Horas'),
+                        keyboardType: TextInputType.number,
+                        onSaved: (value) {
+                          _estimatedHours = value.parseIntOrZero();
+                        },
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: TextFormField(
-                      decoration: InputDecoration(labelText: 'Minutos'),
-                      keyboardType: TextInputType.number,
-                      initialValue: _estimatedMinutes.toString(),
-                      onSaved: (value) {
-                        _estimatedMinutes = int.tryParse(value ?? '0') ?? 0;
-                      },
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _estimatedMinutesController,
+                        decoration: InputDecoration(labelText: 'Minutos'),
+                        keyboardType: TextInputType.number,
+                        onSaved: (value) {
+                          _estimatedMinutes = value.parseIntOrZero();
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    IconButton.filledTonal(
+                      icon: const Icon(Icons.access_time),
+                      onPressed: () => _showTimePickerCupertino(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
       actions: [
         TextButton(
-          child: Text('Cancelar'),
+          child: const Text('Cancelar'),
           onPressed: () => Navigator.pop(context),
         ),
         ElevatedButton(
-          child: Text('Añadir'),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Text('Añadir'),
+          ),
           onPressed: () async {
             if (_titleController.text.isEmpty) {
               _titleController.text = 'Nueva tarea'; // default title
@@ -195,6 +291,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               await tryOrShowError(context, () async {
                 final newTask = await taskProvider.createTask(
                   _title,
+                  _description,
                   _selectedProject,
                   _estimatedTime,
                 );

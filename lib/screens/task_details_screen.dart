@@ -3,10 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../models/project.dart';
 import '../models/task.dart';
+import '../models/time_entry.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/date.dart';
 import '../utils/duration.dart';
+import '../utils/strings.dart';
 import '../widgets/label_value.dart';
 import '../widgets/project_tag.dart';
 import '../widgets/time_chart.dart';
@@ -35,9 +37,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   void initState() {
     super.initState();
     _taskProvider = context.read<TaskProvider>();
+    _taskProvider.addListener(_updateTimeHistoryChart);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _updateEstimatedEndTime();
     _updateTimeHistoryChart();
-    _taskProvider.addListener(_updateTimeHistoryChart);
+    _taskProvider.setTodayTime(widget.task);
   }
 
   @override
@@ -75,7 +83,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       ));
     }
 
-    // debugPrint(
+    // log(
     //     '${widget.task.title} _updateTimeHistoryChart ${DateTime.now()}');
 
     if (setState) this.setState(() {});
@@ -106,6 +114,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Detalles de la tarea'),
+        // TODO: Añadir Botón Copiar en los detalles de una tarea
         actions: [
           if (widget.task.archived)
             // Eliminar tarea
@@ -116,7 +125,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 onPressed: () async {
                   await _taskProvider.deleteTask(context, widget.task);
                   NavigationProvider.navigateToPage(
-                      context, AppPage.archivedTasks);
+                    context,
+                    AppPage.archivedTasks,
+                  );
                 },
               ),
             ),
@@ -151,7 +162,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     child: Text(
                       widget.task.title,
                       style:
-                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -160,22 +171,44 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             SizedBox(height: 10),
             // Etiqueta del Proyecto
             FutureBuilder<Project?>(
-                future: widget.task.getProject(),
-                builder: (_, snapshot) {
-                  final project = snapshot.data;
-                  if (project == null) return const SizedBox.shrink();
-                  return GestureDetector(
-                    onTap: () {
-                      context
-                          .read<NavigationProvider>()
-                          .navigateToProjectDetails(context, project);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: ProjectTag(project: project),
-                    ),
-                  );
-                }),
+              future: widget.task.getProject(),
+              builder: (_, snapshot) {
+                final project = snapshot.data;
+                if (project == null) return const SizedBox.shrink();
+                return GestureDetector(
+                  onTap: () {
+                    context
+                        .read<NavigationProvider>()
+                        .navigateToProjectDetails(context, project);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: ProjectTag(project: project),
+                  ),
+                );
+              },
+            ),
+            // Descripción editable
+            if (widget.task.description.isNotBlank)
+              GestureDetector(
+                onTap: () => _editDescription(context),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.task.description,
+                          softWrap: true,
+                          style: const TextStyle(
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // Duración estimada
             if (widget.task.estimatedTimeMillis != null)
               Padding(
@@ -192,7 +225,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 padding: const EdgeInsets.only(bottom: 20),
                 child: LabelValue(
                   label: 'Finalización estimada',
-                  value: _estimatedEndTime!.formatFutureTime(),
+                  value: _estimatedEndTime!.formatTimeFuture(),
                   separator: ':\n',
                 ),
               ),
@@ -208,15 +241,16 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 ),
               ),
             // Tiempo
-            if (!widget.task.archived && widget.task.todayTimeMillis != null)
-              LabelValue(
-                label: 'Hoy',
-                value: widget.task.todayTime!.format(),
-              ),
             if (widget.task.totalTimeMillis > 0)
               LabelValue(
                 label: 'Total',
                 value: widget.task.totalTime.format(),
+              ),
+            if (!widget.task.archived && widget.task.todayTimeMillis != null)
+              LabelValue(
+                label: 'Hoy',
+                value: widget.task.todayTime!.format(),
+                separator: ':   ', // Space: 1 + "Total".length - "Hoy".length
               ),
             SizedBox(height: 10),
             if (!widget.task.archived)
@@ -277,22 +311,58 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Editar título'),
+        title: const Text('Editar título'),
         content: TextField(
           controller: _controller,
-          decoration: InputDecoration(labelText: 'Título'),
+          decoration: const InputDecoration(labelText: 'Título'),
         ),
         actions: [
           TextButton(
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
             onPressed: () => Navigator.pop(context),
           ),
           ElevatedButton(
-            child: Text('Guardar'),
+            child: const Text('Guardar'),
             onPressed: () async {
               final newTitle = _controller.text.trim();
+
               if (newTitle.isNotEmpty) {
                 widget.task.title = newTitle;
+                _taskProvider.updateTask(widget.task);
+                Navigator.pop(context); // Cerrar Dialog
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editDescription(BuildContext context) {
+    final _controller = TextEditingController(text: widget.task.description);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Editar descripción'),
+        content: TextField(
+          controller: _controller,
+          decoration: const InputDecoration(labelText: 'Descripción'),
+          minLines: 3,
+          maxLines: 20,
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancelar'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            child: const Text('Guardar'),
+            onPressed: () async {
+              final newDescription = _controller.text.trim();
+
+              if (newDescription.isNotEmpty) {
+                widget.task.description = newDescription;
                 _taskProvider.updateTask(widget.task);
                 Navigator.pop(context); // Cerrar Dialog
               }

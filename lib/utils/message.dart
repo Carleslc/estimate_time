@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
 
 import '../models/project.dart';
 import '../models/task.dart';
 import '../providers/navigation_provider.dart';
+import 'log.dart';
 
 abstract class ShowMessage {
   static SnackBarController? taskArchived(BuildContext context, Task task) =>
@@ -149,7 +149,7 @@ Future<T?> tryOrShowError<T>(
   try {
     return await callback();
   } catch (e) {
-    debugPrint('${errorMessage}: $e');
+    log('${errorMessage}: $e');
     ShowMessage.error(context, errorMessage);
     return null;
   }

@@ -3,6 +3,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/project.dart';
 import '../models/task.dart';
+import '../models/time_entry.dart';
 
 class IsarService {
   late Future<Isar> db;

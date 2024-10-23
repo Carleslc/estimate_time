@@ -45,8 +45,8 @@ extension DurationFormatting on Duration {
     // entire minutes
     int minutes = remainderSeconds ~/ Duration.secondsPerMinute;
     remainderSeconds -= minutes * Duration.secondsPerMinute;
-    // round up seconds
-    int seconds = remainderSeconds.round();
+    // round seconds
+    int seconds = remainderSeconds.truncate();
     // adjust rounding seconds, minutes, hours
     if (seconds == Duration.secondsPerMinute) {
       minutes++;

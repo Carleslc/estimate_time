@@ -9,7 +9,19 @@ import '../widgets/project_tag.dart';
 import '../widgets/timer_button.dart';
 import 'add_task_dialog.dart';
 
-class ActiveTasksScreen extends StatelessWidget {
+class ActiveTasksScreen extends StatefulWidget {
+  @override
+  State<ActiveTasksScreen> createState() => _ActiveTasksScreenState();
+}
+
+class _ActiveTasksScreenState extends State<ActiveTasksScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Recarga las tareas
+    context.read<TaskProvider>().loadActiveTasks();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<TaskProvider>(

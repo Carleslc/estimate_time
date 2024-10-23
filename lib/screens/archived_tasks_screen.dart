@@ -9,7 +9,19 @@ import '../utils/duration.dart';
 import '../widgets/project_tag.dart';
 import 'add_task_dialog.dart';
 
-class ArchivedTasksScreen extends StatelessWidget {
+class ArchivedTasksScreen extends StatefulWidget {
+  @override
+  State<ArchivedTasksScreen> createState() => _ArchivedTasksScreenState();
+}
+
+class _ArchivedTasksScreenState extends State<ArchivedTasksScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Recarga las tareas
+    context.read<TaskProvider>().loadArchivedTasks();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<TaskProvider>(
@@ -123,7 +135,12 @@ class ArchivedTasksScreen extends StatelessWidget {
                         onTap: () {
                           context
                               .read<NavigationProvider>()
-                              .navigateToTaskDetails(context, task);
+                              .navigateToTaskDetails(context, task)
+                              .then((_) {
+                            // Recarga las tareas cuando la pantalla se vuelve a mostrar
+                            // Desde detalles, por si se ha eliminado la tarea
+                            context.read<TaskProvider>().loadArchivedTasks();
+                          });
                         },
                       ),
                     );

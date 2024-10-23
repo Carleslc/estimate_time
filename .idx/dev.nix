@@ -18,7 +18,7 @@
       # Runs when a workspace is first created with this `dev.nix` file
       onCreate = {
         build-flutter = ''
-          # TODO: Execute web build in debug mode.
+          # Execute web build in debug mode.
           # flutter run does this transparently either way
           # https://github.com/flutter/flutter/issues/96283#issuecomment-1144750411
           # flutter build web --profile --dart-define=Dart2jsOptimization=O0 

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/project.dart';
+import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
-import '../utils/time.dart';
+import '../utils/duration.dart';
 import '../widgets/project_tag.dart';
 import '../widgets/timer_button.dart';
 import 'add_task_dialog.dart';
-import 'task_details_screen.dart';
 
 class ActiveTasksScreen extends StatelessWidget {
   @override
@@ -79,18 +79,16 @@ class ActiveTasksScreen extends StatelessWidget {
                         // Play / Pause
                         trailing: TimerButton(
                           isRunning: task.isRunning,
+                          tooltip: task.timerLabel,
                           onPressed: () {
                             taskProvider.toggleTaskTimer(task);
                           },
                         ),
                         // Detalles
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => TaskDetailsScreen(task: task),
-                            ),
-                          );
+                          context
+                              .read<NavigationProvider>()
+                              .navigateToTaskDetails(context, task);
                         },
                       ),
                     );

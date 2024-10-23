@@ -6,12 +6,12 @@ import '../models/task.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/project_provider.dart';
 import '../providers/task_provider.dart';
-import '../utils/time.dart';
+import '../utils/duration.dart';
+import '../widgets/color_picker_dialog.dart';
+import '../widgets/label_value.dart';
 import '../widgets/time_chart.dart';
 import '../widgets/timer_button.dart';
 import 'add_task_dialog.dart';
-import 'projects_screen.dart';
-import 'task_details_screen.dart';
 
 class ProjectDetailsScreen extends StatefulWidget {
   final Project project;
@@ -23,10 +23,12 @@ class ProjectDetailsScreen extends StatefulWidget {
 }
 
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
+  late final TaskProvider _taskProvider;
+
   List<Task> _projectTasks = [];
 
   List<({int dayIndex, double minutes})> _chartData = [];
-  List<String> _chartLabels = [];
+  List<({String label, DateTime value})> _chartLabels = [];
 
   int _totalEstimatedMillis = 0;
   int _totalMilliseconds = 0;
@@ -36,14 +38,20 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    _taskProvider = context.read<TaskProvider>();
     _updateTimeHistoryChart();
+    _taskProvider.addListener(_updateTimeHistoryChart);
+  }
+
+  @override
+  void dispose() {
+    _taskProvider.removeListener(_updateTimeHistoryChart);
+    super.dispose();
   }
 
   Future<void> _updateTimeHistoryChart({bool setState = true}) async {
-    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-
     // Tareas del proyecto
-    _projectTasks = taskProvider.allTasks
+    _projectTasks = _taskProvider.allTasks
         .where((task) => task.project.value?.id == widget.project.id)
         .toList();
 
@@ -92,7 +100,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
     for (var (int i, MapEntry<DateTime, Duration> entry)
         in recentEntries.indexed) {
-      _chartLabels.add('${entry.key.day}/${entry.key.month}');
+      _chartLabels.add(
+          (label: '${entry.key.day}/${entry.key.month}', value: entry.key));
       _chartData.add((
         dayIndex: i,
         minutes: entry.value.totalMinutes,
@@ -107,10 +116,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _updateTimeHistoryChart(setState: false);
-
     final projectProvider = Provider.of<ProjectProvider>(context);
-    final taskProvider = Provider.of<TaskProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -163,95 +169,58 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Nombre con color
-            Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: GestureDetector(
-                    onTap: () => _editColor(context, projectProvider),
-                    child: CircleAvatar(
-                      backgroundColor: widget.project.color,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: GestureDetector(
+                      onTap: () => _editColor(context, projectProvider),
+                      child: CircleAvatar(
+                        backgroundColor: widget.project.color,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _editName(context, projectProvider),
-                    child: Text(
-                      widget.project.name,
-                      style:
-                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _editName(context, projectProvider),
+                      child: Text(
+                        widget.project.name,
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            SizedBox(height: 10),
             // Tiempo total
             if (_totalMilliseconds > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Tiempo total: ',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      TextSpan(
-                        text:
-                            Duration(milliseconds: _totalMilliseconds).format(),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              LabelValue(
+                label: 'Tiempo total',
+                value: Duration(milliseconds: _totalMilliseconds).format(),
               ),
+            SizedBox(height: 20),
             // Tiempo medio
             if (_projectTasks.length > 1 && _avgMilliseconds > 0)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Tiempo medio: ',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      TextSpan(
-                        text: Duration(milliseconds: _avgMilliseconds)
-                            .format(withSeconds: false),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                child: LabelValue(
+                  label: 'Tiempo medio',
+                  value: Duration(milliseconds: _avgMilliseconds)
+                      .format(withSeconds: false),
                 ),
               ),
             if (_totalEstimatedMillis > 0)
               // Desviación media
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Desviación media: ',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      TextSpan(
-                        text: '${_deviation.round()}%',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: _deviation > 0 ? Colors.red : Colors.green,
-                        ),
-                      ),
-                    ],
+                child: LabelValue(
+                  label: 'Desviación media',
+                  value: '${_deviation.round()}%',
+                  valueStyle: TextStyle(
+                    color: _deviation > 0 ? Colors.red : Colors.green,
                   ),
                 ),
               ),
@@ -303,21 +272,20 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                         // Cronómetro
                         TimerButton(
                             isRunning: task.isRunning,
+                            tooltip: task.timerLabel,
                             iconSize: 28,
                             onPressed: () {
-                              taskProvider.toggleTaskTimer(task);
+                              _taskProvider.toggleTaskTimer(task);
+
                               if (!task.isRunning) {
                                 _updateTimeHistoryChart();
                               }
                             },
                           ),
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TaskDetailsScreen(task: task),
-                        ),
-                      );
+                      context
+                          .read<NavigationProvider>()
+                          .navigateToTaskDetails(context, task);
                     },
                   );
                 },

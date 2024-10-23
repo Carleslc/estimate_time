@@ -41,8 +41,8 @@ class HomeScreen extends StatelessWidget {
               currentIndex: navigationProvider.currentPage.index,
               items: [
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.task),
-                  label: 'Tareas',
+                  icon: Icon(Icons.timer), // Icons.task
+                  label: 'Cronómetros',
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.folder),

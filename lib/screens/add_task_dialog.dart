@@ -63,6 +63,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   void initState() {
     super.initState();
     _title = widget.initialTitle ?? '';
+    _titleController.text = _title;
     _estimatedHours = widget.estimatedHours ?? 0;
     _estimatedMinutes = widget.estimatedMinutes ?? 0;
     _loadAvailableProjects();
@@ -93,10 +94,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             children: [
               // Proyecto
               DropdownButtonFormField<Project>(
-                decoration: InputDecoration(
-                  labelText: 'Proyecto' +
-                      (widget.projectId == null ? ' (opcional)' : ''),
-                ),
+                decoration: InputDecoration(labelText: 'Proyecto'),
                 icon: widget.projectId == null
                     ? const Icon(Icons.arrow_drop_down)
                     : const SizedBox.shrink(),
@@ -130,7 +128,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               SizedBox(height: 10),
               // Título
               TextFormField(
-                initialValue: _title,
+                controller: _titleController,
                 decoration: InputDecoration(labelText: 'Título'),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -179,7 +177,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
           onPressed: () => Navigator.pop(context),
         ),
         ElevatedButton(
-          child: Text('Empezar'),
+          child: Text('Añadir'),
           onPressed: () async {
             if (_titleController.text.isEmpty) {
               _titleController.text = 'Nueva tarea'; // default title

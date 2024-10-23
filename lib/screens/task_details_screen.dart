@@ -5,11 +5,12 @@ import '../models/project.dart';
 import '../models/task.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
-import '../utils/time.dart';
+import '../utils/date.dart';
+import '../utils/duration.dart';
+import '../widgets/label_value.dart';
 import '../widgets/project_tag.dart';
 import '../widgets/time_chart.dart';
 import '../widgets/timer_button.dart';
-import 'project_details_screen.dart';
 
 class TaskDetailsScreen extends StatefulWidget {
   final Task task;
@@ -21,15 +22,28 @@ class TaskDetailsScreen extends StatefulWidget {
 }
 
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
+  late final TaskProvider _taskProvider;
+
   List<TimeEntry> _entries = [];
 
   List<({int dayIndex, double minutes})> _chartData = [];
-  List<String> _chartLabels = [];
+  List<({String label, DateTime value})> _chartLabels = [];
+
+  DateTime? _estimatedEndTime;
 
   @override
   void initState() {
     super.initState();
+    _taskProvider = context.read<TaskProvider>();
+    _updateEstimatedEndTime();
     _updateTimeHistoryChart();
+    _taskProvider.addListener(_updateTimeHistoryChart);
+  }
+
+  @override
+  void dispose() {
+    _taskProvider.removeListener(_updateTimeHistoryChart);
+    super.dispose();
   }
 
   Future<void> _updateTimeHistoryChart({bool setState = true}) async {
@@ -51,7 +65,10 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     _chartData = [];
 
     for (var (int i, TimeEntry entry) in recentEntries.indexed) {
-      _chartLabels.add('${entry.date.day}/${entry.date.month}');
+      _chartLabels.add((
+        label: '${entry.date.day}/${entry.date.month}',
+        value: entry.day,
+      ));
       _chartData.add((
         dayIndex: i,
         minutes: entry.duration.totalMinutes,
@@ -64,6 +81,19 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     if (setState) this.setState(() {});
   }
 
+  void _updateEstimatedEndTime() {
+    if (widget.task.estimatedTime != null && widget.task.isRunning) {
+      final remainingTime = widget.task.estimatedTime! - widget.task.totalTime;
+      final now = DateTime.now();
+      final estimatedEndTime = now.add(remainingTime);
+      if (estimatedEndTime.isAfter(now)) {
+        setState(() {
+          _estimatedEndTime = estimatedEndTime;
+        });
+      }
+    }
+  }
+
   String get _progressOrDeviation {
     int progressEstimation = widget.task.progressEstimation.round();
     return progressEstimation <= 100
@@ -73,10 +103,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _updateTimeHistoryChart(setState: false);
-
-    final taskProvider = Provider.of<TaskProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Detalles de la tarea'),
@@ -88,7 +114,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               child: IconButton(
                 icon: Icon(Icons.delete),
                 onPressed: () async {
-                  await taskProvider.deleteTask(context, widget.task);
+                  await _taskProvider.deleteTask(context, widget.task);
                   NavigationProvider.navigateToPage(
                       context, AppPage.archivedTasks);
                 },
@@ -102,9 +128,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   Icon(widget.task.archived ? Icons.unarchive : Icons.archive),
               onPressed: () {
                 if (widget.task.archived) {
-                  taskProvider.unarchiveTask(context, widget.task);
+                  _taskProvider.unarchiveTask(context, widget.task);
                 } else {
-                  taskProvider.archiveTask(context, widget.task);
+                  _taskProvider.archiveTask(context, widget.task);
                 }
               },
             ),
@@ -118,7 +144,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           children: [
             // Título editable
             GestureDetector(
-              onTap: () => _editTitle(context, taskProvider),
+              onTap: () => _editTitle(context),
               child: Row(
                 children: [
                   Expanded(
@@ -140,13 +166,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   if (project == null) return const SizedBox.shrink();
                   return GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              ProjectDetailsScreen(project: project),
-                        ),
-                      );
+                      context
+                          .read<NavigationProvider>()
+                          .navigateToProjectDetails(context, project);
                     },
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -154,11 +176,25 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     ),
                   );
                 }),
+            // Duración estimada
             if (widget.task.estimatedTimeMillis != null)
               Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: LabelValue(
+                  label: 'Estimación',
+                  value: widget.task.estimatedTime!.format(),
+                  valueStyle: const TextStyle(fontWeight: FontWeight.normal),
+                ),
+              ),
+            // Estimación de hora de finalización
+            if (_estimatedEndTime != null)
+              Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child:
-                    Text('Estimación:  ${widget.task.estimatedTime?.format()}'),
+                child: LabelValue(
+                  label: 'Finalización estimada',
+                  value: _estimatedEndTime!.formatFutureTime(),
+                  separator: ':\n',
+                ),
               ),
             if (widget.task.archived)
               Padding(
@@ -173,18 +209,29 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               ),
             // Tiempo
             if (!widget.task.archived && widget.task.todayTimeMillis != null)
-              Text('Hoy:    ${widget.task.todayTime!.format()}'),
+              LabelValue(
+                label: 'Hoy',
+                value: widget.task.todayTime!.format(),
+              ),
             if (widget.task.totalTimeMillis > 0)
-              Text('Total:  ${widget.task.totalTime.format()}'),
+              LabelValue(
+                label: 'Total',
+                value: widget.task.totalTime.format(),
+              ),
             SizedBox(height: 10),
             if (!widget.task.archived)
               // Play / Pause
               TimerButton(
                 isRunning: widget.task.isRunning,
                 label: widget.task.timerLabel,
-                onPressed: () {
-                  taskProvider.toggleTaskTimer(widget.task);
-                  if (!widget.task.isRunning) {
+                onPressed: () async {
+                  await _taskProvider.toggleTaskTimer(widget.task);
+
+                  if (widget.task.isRunning) {
+                    // Play
+                    _updateEstimatedEndTime();
+                  } else {
+                    // Pause
                     _updateTimeHistoryChart();
                   }
                 },
@@ -196,24 +243,14 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               // Desviación
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text:
-                            "${widget.task.progressEstimation <= 100 ? 'Progreso estimado' : 'Desviación'}: ",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      TextSpan(
-                        text: _progressOrDeviation,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: widget.task.deviation <= 0
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                      ),
-                    ],
+                child: LabelValue(
+                  label: widget.task.progressEstimation <= 100
+                      ? 'Progreso estimado'
+                      : 'Desviación',
+                  value: _progressOrDeviation,
+                  valueStyle: TextStyle(
+                    color:
+                        widget.task.deviation <= 0 ? Colors.green : Colors.red,
                   ),
                 ),
               ),
@@ -234,7 +271,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     );
   }
 
-  void _editTitle(BuildContext context, TaskProvider taskProvider) {
+  void _editTitle(BuildContext context) {
     final _controller = TextEditingController(text: widget.task.title);
 
     showDialog(
@@ -256,7 +293,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               final newTitle = _controller.text.trim();
               if (newTitle.isNotEmpty) {
                 widget.task.title = newTitle;
-                taskProvider.updateTask(widget.task);
+                _taskProvider.updateTask(widget.task);
                 Navigator.pop(context); // Cerrar Dialog
               }
             },

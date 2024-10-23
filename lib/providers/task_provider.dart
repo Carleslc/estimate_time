@@ -11,6 +11,9 @@ import '../services/timer_service.dart';
 import '../utils/date.dart';
 import '../utils/message.dart';
 
+// FIXME: A veces no cuadra el tiempo de la barra con el totalTime.
+// No sé si tiene que ver con los reinicios.
+
 class TaskProvider with ChangeNotifier {
   final IsarService isarService;
   final TimerService timerService = TimerService();
@@ -31,12 +34,17 @@ class TaskProvider with ChangeNotifier {
     await _loadArchivedTasks();
 
     if (resumeTimers) {
+      final List<Future> _timers = [];
+
       // Reanudar cronómetros para tareas que estaban corriendo antes de cerrar la app
       for (var task in _tasks) {
         if (task.isRunning) {
-          _resumeTimer(task);
+          _timers.add(_resumeTimer(task));
         }
       }
+
+      // Espera a que todos los cronómetros empiecen
+      await Future.wait(_timers);
     }
 
     notifyListeners();
@@ -75,7 +83,6 @@ class TaskProvider with ChangeNotifier {
     } else {
       _tasks.add(task);
     }
-
     // Añadir tarea (DB)
     await updateTask(task);
   }
@@ -88,33 +95,33 @@ class TaskProvider with ChangeNotifier {
     if (notify) notifyListeners();
   }
 
-  void startTimer(Task task) {
+  Future<void> startTimer(Task task) async {
     if (task.isRunning) return;
 
-    _runTimer(task);
+    await _runTimer(task);
   }
 
-  void _runTimer(Task task) {
+  Future<void> _runTimer(Task task) async {
     if (timerService.isRunning(task.id)) return;
+
+    task.isRunning = true;
+    task.lastUpdated = DateTime.now();
+
+    await updateTask(task);
 
     // Inicia el cronómetro
     timerService.startTimer(task.id, () async {
       await _updateTime(task);
       notifyListeners();
     });
-
-    task.isRunning = true;
-    task.lastUpdated = DateTime.now();
-
-    updateTask(task);
   }
 
-  void _resumeTimer(Task task) {
+  Future<void> _resumeTimer(Task task) async {
     // Actualizar tiempo
-    _updateTime(task);
+    await _updateTime(task);
 
     // Inicia el cronómetro
-    _runTimer(task);
+    await _runTimer(task);
   }
 
   Future<void> pauseTimer(Task task) async {
@@ -136,7 +143,7 @@ class TaskProvider with ChangeNotifier {
     if (task.isRunning) {
       await pauseTimer(task);
     } else {
-      startTimer(task);
+      await startTimer(task);
     }
   }
 
@@ -151,7 +158,7 @@ class TaskProvider with ChangeNotifier {
     await isar.writeTxn(() async {
       TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
 
-      if (timeEntry == null || !isSameDay(timeEntry.date, now)) {
+      if (timeEntry == null || !timeEntry.date.isSameDay(now)) {
         // Crear un nuevo TimeEntry
         timeEntry = TimeEntry()
           ..date = now
@@ -213,6 +220,9 @@ class TaskProvider with ChangeNotifier {
   Future<void> deleteTask(BuildContext context, Task task) {
     return tryOrShowError(context, () async {
       Project? linkedProject = task.project.value;
+
+      // Pausa el cronómetro
+      await pauseTimer(task);
 
       // Elimina la tarea (UI)
       _tasks.remove(task);

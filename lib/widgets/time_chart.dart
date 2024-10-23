@@ -1,11 +1,12 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../utils/time.dart';
+import '../utils/date.dart';
+import '../utils/duration.dart';
 
 class TimeChart extends StatelessWidget {
   final List<({int dayIndex, double minutes})> chartData;
-  final List<String> chartLabels;
+  final List<({String label, DateTime value})> chartLabels;
   final String axisX;
   late final double _maxY;
 
@@ -46,11 +47,47 @@ class TimeChart extends StatelessWidget {
     final intervalY = _intervalY(_maxY);
     final axisYinMinutes = _axisYinMinutes(_maxY);
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
         maxY: _maxY + intervalY, // maxY + margin
-        barTouchData: BarTouchData(enabled: false),
+        barTouchData: BarTouchData(
+          enabled: true,
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => colorScheme.surfaceContainer,
+            tooltipPadding: const EdgeInsets.all(8),
+            tooltipMargin: 8,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              String dayLabel =
+                  chartLabels[group.x.toInt()].value.formatDateMEd();
+
+              double minutes = rod.toY;
+              double milliseconds = minutes * Duration.millisecondsPerMinute;
+              Duration duration = Duration(milliseconds: milliseconds.toInt());
+              String formattedValue = duration.format(withSeconds: true);
+
+              return BarTooltipItem(
+                '$dayLabel\n', // Fecha
+                TextStyle(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                children: [
+                  TextSpan(
+                    text: formattedValue, // Tiempo
+                    style: TextStyle(
+                      color: colorScheme.onSecondaryContainer,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             axisNameWidget: Text(
@@ -101,7 +138,7 @@ class TimeChart extends StatelessWidget {
                   return SideTitleWidget(
                     axisSide: AxisSide.bottom,
                     child: Text(
-                      chartLabels[value.toInt()],
+                      chartLabels[value.toInt()].label,
                       style: TextStyle(fontSize: 12),
                     ),
                   );
@@ -134,6 +171,7 @@ class TimeChart extends StatelessWidget {
             barRods: [
               BarChartRodData(
                 toY: entry.minutes,
+                width: 12,
                 color: Theme.of(context).colorScheme.primary,
               ),
             ],

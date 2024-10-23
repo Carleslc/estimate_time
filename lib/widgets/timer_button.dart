@@ -8,13 +8,15 @@ class TimerButton extends StatelessWidget {
   final Color pauseColor;
   final double? iconSize;
   final String? label;
+  final String? tooltip;
 
   TimerButton({
     super.key,
     required this.isRunning,
     required this.onPressed,
-    this.label,
     this.iconSize = 32,
+    this.label,
+    this.tooltip,
     Color? runColor,
     Color? pauseColor,
   })  : runColor = runColor ?? Colors.green.shade400,
@@ -32,7 +34,7 @@ class TimerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return label != null
+    Widget timerButton = label != null
         ? FilledButton.icon(
             onPressed: onPressed,
             label: Text(
@@ -48,5 +50,12 @@ class TimerButton extends StatelessWidget {
             style: style,
             onPressed: onPressed,
           );
+    if (tooltip != null) {
+      timerButton = Tooltip(
+        message: tooltip,
+        child: timerButton,
+      );
+    }
+    return timerButton;
   }
 }

@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../models/project.dart';
 import '../models/task.dart';
+import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
-import '../utils/time.dart';
+import '../utils/duration.dart';
 import '../widgets/project_tag.dart';
 import 'add_task_dialog.dart';
-import 'task_details_screen.dart';
 
 class ArchivedTasksScreen extends StatelessWidget {
   @override
@@ -121,12 +121,9 @@ class ArchivedTasksScreen extends StatelessWidget {
                         ),
                         // Detalles
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => TaskDetailsScreen(task: task),
-                            ),
-                          );
+                          context
+                              .read<NavigationProvider>()
+                              .navigateToTaskDetails(context, task);
                         },
                       ),
                     );

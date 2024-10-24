@@ -8,6 +8,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/date.dart';
 import '../utils/duration.dart';
+import '../utils/log.dart';
 import '../utils/strings.dart';
 import '../widgets/label_value.dart';
 import '../widgets/project_tag.dart';
@@ -83,8 +84,10 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       ));
     }
 
-    // log(
-    //     '${widget.task.title} _updateTimeHistoryChart ${DateTime.now()}');
+    log(
+      enabled: false,
+      '${widget.task.title} _updateTimeHistoryChart ${DateTime.now()}',
+    );
 
     if (setState) this.setState(() {});
   }
@@ -220,7 +223,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 ),
               ),
             // Estimación de hora de finalización
-            if (_estimatedEndTime != null)
+            if (widget.task.isRunning && _estimatedEndTime != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: LabelValue(
@@ -229,9 +232,22 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   separator: ':\n',
                 ),
               ),
+            // Tiempo
+            if (widget.task.totalTimeMillis > 0)
+              LabelValue(
+                label: 'Total',
+                value: widget.task.totalTime.format(),
+              ),
+            if (widget.task.todayTimeMillis != null)
+              LabelValue(
+                label: 'Hoy',
+                value: widget.task.todayTime!.format(),
+                separator: ':   ', // Space: 1 + "Total".length - "Hoy".length
+              ),
+            SizedBox(height: 10),
             if (widget.task.archived)
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(
                   'Esta tarea está archivada',
                   style: TextStyle(
@@ -239,21 +255,8 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     color: Theme.of(context).colorScheme.outline,
                   ),
                 ),
-              ),
-            // Tiempo
-            if (widget.task.totalTimeMillis > 0)
-              LabelValue(
-                label: 'Total',
-                value: widget.task.totalTime.format(),
-              ),
-            if (!widget.task.archived && widget.task.todayTimeMillis != null)
-              LabelValue(
-                label: 'Hoy',
-                value: widget.task.todayTime!.format(),
-                separator: ':   ', // Space: 1 + "Total".length - "Hoy".length
-              ),
-            SizedBox(height: 10),
-            if (!widget.task.archived)
+              )
+            else
               // Play / Pause
               TimerButton(
                 isRunning: widget.task.isRunning,

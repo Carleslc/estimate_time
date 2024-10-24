@@ -102,6 +102,45 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     });
   }
 
+  Future<void> _showTimePicker() async {
+    // TODO: Add Settings page with preferred time picker selector
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      _showTimePickerCupertino();
+    } else {
+      _showTimePickerMaterial();
+    }
+  }
+
+  Future<void> _showTimePickerMaterial() async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: _estimatedHoursController.text.parseIntOrZero(),
+        minute: _estimatedMinutesController.text.parseIntOrZero(),
+      ),
+      initialEntryMode: TimePickerEntryMode.dial,
+      hourLabelText: 'Horas',
+      minuteLabelText: 'Minutos',
+      helpText: 'Tiempo estimado',
+      confirmText: 'Aceptar'.toUpperCase(),
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime != null) {
+      setState(() {
+        _estimatedHours = pickedTime.hour;
+        _estimatedHoursController.text = _estimatedHours.toString();
+        _estimatedMinutes = pickedTime.minute;
+        _estimatedMinutesController.text = _estimatedMinutes.toString();
+      });
+    }
+  }
+
   void _showTimePickerCupertino() {
     showCupertinoModalPopup(
       context: context,
@@ -119,7 +158,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             setState(() {
               _estimatedHours = pickDuration.inHours;
               _estimatedHoursController.text = _estimatedHours.toString();
-              _estimatedMinutes = pickDuration.inMinutes.remainder(60);
+              _estimatedMinutes = pickDuration.inMinutes;
               _estimatedMinutesController.text = _estimatedMinutes.toString();
             });
           },
@@ -255,7 +294,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     ),
                     IconButton.filledTonal(
                       icon: const Icon(Icons.access_time),
-                      onPressed: () => _showTimePickerCupertino(),
+                      onPressed: () => _showTimePicker(),
                     ),
                   ],
                 ),

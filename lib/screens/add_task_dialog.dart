@@ -73,6 +73,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
   late bool _requiredTitle;
 
+  late double _dialogWidth;
+
   @override
   void initState() {
     super.initState();
@@ -86,6 +88,15 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     _estimatedMinutesController.text = _estimatedMinutes.toString();
     _loadAvailableProjects();
     _requiredTitleUpdate();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    setState(() {
+      // Expand horizontally, max 300dp
+      _dialogWidth = min(300, MediaQuery.sizeOf(context).width);
+    });
   }
 
   void _loadAvailableProjects() async {
@@ -119,6 +130,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         minute: _estimatedMinutesController.text.parseIntOrZero(),
       ),
       initialEntryMode: TimePickerEntryMode.dial,
+      orientation: MediaQuery.orientationOf(context),
       hourLabelText: 'Horas',
       minuteLabelText: 'Minutos',
       helpText: 'Tiempo estimado',
@@ -172,18 +184,22 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
         _titleController.text.isNotEmpty && _titleController.text.isBlank;
   }
 
+  bool get isCopy => widget.title != null;
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Nueva tarea'),
+      title: Text(
+        isCopy ? 'Copiar: ${widget.title}' : 'Nueva tarea',
+        overflow: TextOverflow.ellipsis,
+      ),
       insetPadding: const EdgeInsets.symmetric(
         // Outside padding
         horizontal: 50,
         vertical: 20,
       ),
       content: SizedBox(
-        // Expand horizontally, max 300dp
-        width: min(300, MediaQuery.of(context).size.width),
+        width: _dialogWidth,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,

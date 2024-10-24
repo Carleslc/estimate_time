@@ -1,25 +1,36 @@
 import 'dart:async';
 import 'dart:ui';
 
-class TimerService {
-  // Singleton Pattern
-  TimerService._();
-  static final TimerService _instance = TimerService._();
-  factory TimerService() => _instance;
+import '../utils/duration.dart';
+import '../utils/log.dart';
 
+class TimerService {
   // Duración del tick
-  static const tickDuration = Duration(seconds: 1);
+  final Duration tickDuration;
+
+  TimerService({Duration? tickDuration})
+      : tickDuration = tickDuration ?? const Duration(seconds: 1);
 
   // Mapa que asocia el ID del cronómetro con su Timer
   final Map<int, Timer> _timers = {};
 
   // Inicia el cronómetro
-  void startTimer(int id, VoidCallback onTick,
-      {Duration syncTime = Duration.zero}) {
+  void startTimer(
+    int id, {
+    required VoidCallback onTick,
+    Duration? syncTime,
+    VoidCallback? onFirstTick,
+  }) {
     if (isRunning(id)) return;
 
-    _timers[id] = Timer.periodic(tickDuration, (timer) {
-      onTick();
+    // Inicia el cronómetro
+    _atStartOfNextSecond(id, syncTime ?? tickDuration, () {
+      // Primer tick al siguiente segundo en punto de [syncTime]
+      (onFirstTick ?? onTick).call();
+      // Ticks en intervalos de [tickDuration]
+      _timers[id] = Timer.periodic(tickDuration, (timer) {
+        onTick();
+      });
     });
   }
 
@@ -40,5 +51,22 @@ class TimerService {
   void stopAll() {
     _timers.forEach((key, timer) => timer.cancel());
     _timers.clear();
+  }
+
+  /// Execute [onNextSecond] at the next beginning of second of [syncTime]
+  void _atStartOfNextSecond(
+      int id, Duration syncTime, VoidCallback onNextSecond) {
+    int fractionMicroseconds =
+        syncTime.inMicroseconds.remainder(Duration.microsecondsPerSecond);
+    Duration remainingTimeToNextSecond = Duration(
+      microseconds: Duration.microsecondsPerSecond - fractionMicroseconds,
+    );
+    log(
+        enabled: true,
+        'Next second in: ${remainingTimeToNextSecond.totalSeconds.toStringAsFixed(3)} s');
+    _timers[id] = Timer(
+      remainingTimeToNextSecond,
+      onNextSecond,
+    );
   }
 }

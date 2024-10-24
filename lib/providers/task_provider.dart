@@ -16,7 +16,7 @@ import '../utils/message.dart';
 
 class TaskProvider with ChangeNotifier {
   final IsarService _isarService;
-  final TimerService _timerService = TimerService();
+  final _timerService = TimerService(tickDuration: const Duration(seconds: 1));
 
   List<Task> _tasks = [];
   List<Task> _archivedTasks = [];
@@ -129,15 +129,19 @@ class TaskProvider with ChangeNotifier {
   Future<void> _runTimer(Task task) async {
     if (_timerService.isRunning(task.id)) return;
 
-    // Ajusta el tiempo al último segundo
-    await _roundLastTimeEntry(task);
-
     task.lastUpdated = DateTime.now();
 
     // Inicia el cronómetro
-    _timerService.startTimer(task.id, () {
-      _updateTimeOnTick(task);
-    });
+    _timerService.startTimer(
+      task.id,
+      syncTime: task.totalTime,
+      onFirstTick: () {
+        _updateTimeOnTick(task, roundToSecond: false);
+      },
+      onTick: () {
+        _updateTimeOnTick(task, roundToSecond: true);
+      },
+    );
 
     // Actualiza el estado
     task.isRunning = true;
@@ -148,16 +152,16 @@ class TaskProvider with ChangeNotifier {
   Future<void> pauseTimer(Task task) async {
     if (!task.isRunning) return;
 
+    // Actualiza el estado
+    task.isRunning = false;
+
     // Actualizar tiempo
     await _updateTime(task);
 
     // Pausa el cronómetro
     _timerService.stopTimer(task.id);
 
-    // Actualiza el estado
-    task.isRunning = false;
-
-    await updateTask(task);
+    notifyListeners();
   }
 
   Future<void> toggleTaskTimer(Task task) async {
@@ -168,26 +172,31 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _updateTimeOnTick(Task task) async {
+  Future<void> _updateTimeOnTick(
+    Task task, {
+    required bool roundToSecond,
+  }) async {
     // Actualizar tiempo
-    await _updateTime(task);
+    await _updateTime(task, roundToSecond: roundToSecond);
 
     // Actualizar UI
     notifyListeners();
   }
 
-  Future<void> _updateTime(Task task) async {
+  Future<void> _updateTime(Task task, {bool roundToSecond = false}) async {
     // Actualizar tiempo
-    final (DateTime now, Duration elapsed) = task.updateElapsedTime();
+    final (DateTime now, int elapsedMillis) =
+        task.updateElapsedTime(roundToSecond: roundToSecond);
 
     // Actualizar historial de tiempo
-    await _updateTimeEntry(task, now, elapsed);
+    await _updateTimeEntry(task, now, elapsedMillis, roundToSecond);
   }
 
   Future<void> _updateTimeEntry(
     Task task,
     DateTime now,
-    Duration elapsed,
+    int elapsedMillis,
+    bool roundToSecond,
   ) async {
     await task.timeHistory.load();
 
@@ -199,10 +208,16 @@ class TaskProvider with ChangeNotifier {
       // Crear un nuevo TimeEntry
       timeEntry = TimeEntry()
         ..date = now
-        ..milliseconds = elapsed.inMilliseconds;
+        ..milliseconds = elapsedMillis;
     } else {
       // Actualizar el TimeEntry existente
-      timeEntry.milliseconds += elapsed.inMilliseconds;
+      timeEntry.milliseconds += elapsedMillis;
+    }
+
+    if (roundToSecond) {
+      timeEntry.milliseconds = DurationFormat.roundMillisToSecond(
+        timeEntry.milliseconds,
+      );
     }
 
     // Actualizar todayTime
@@ -237,21 +252,6 @@ class TaskProvider with ChangeNotifier {
       // Actualizar tarea
       await isar.tasks.put(task);
     });
-  }
-
-  Future<void> _roundLastTimeEntry(Task task) async {
-    await task.timeHistory.load();
-
-    TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
-
-    if (timeEntry != null) {
-      // Redondea los milisegundos al último segundo
-      task.totalTime = task.totalTime.roundToSecond();
-      timeEntry.duration = timeEntry.duration.roundToSecond();
-
-      // Actualiza el TimeEntry
-      await _setTimeEntry(task, timeEntry);
-    }
   }
 
   void setTodayTime(Task task) {

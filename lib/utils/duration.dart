@@ -1,7 +1,8 @@
 final hourInMinutes = Duration.minutesPerHour.toDouble();
 
-extension DurationFormatting on Duration {
-  static String twoDigits(int n) => n.toString().padLeft(2, '0');
+extension DurationFormat on Duration {
+  static String padLeft(int n, int width) => n.toString().padLeft(width, '0');
+  static String twoDigits(int n) => padLeft(n, 2);
 
   String formatTime({bool withSeconds = true, bool withSecondsPart = false}) {
     var (hours, minutes, remainingSeconds) = _timeParts();
@@ -62,10 +63,21 @@ extension DurationFormatting on Duration {
     return (hours, minutes, remainderSeconds);
   }
 
-  Duration roundToSecond() {
-    int ms = Duration.microsecondsPerSecond;
-    int timeSeconds = (inMicroseconds / ms).truncate();
-    int roundedSecond = ((inMicroseconds % ms) / ms).round();
-    return Duration(microseconds: (timeSeconds + roundedSecond) * ms);
-  }
+  Duration roundToSecond() => Duration(seconds: roundToSeconds());
+
+  /// Equivalent to `roundToSecond().inSeconds`, but without wrapping a Duration.\
+  /// Result is in seconds.
+  int roundToSeconds() =>
+      (inMicroseconds / Duration.microsecondsPerSecond).round();
+
+  /// Equivalent to `roundToSecond().inMilliseconds`, but without wrapping a Duration.\
+  /// Result is in milliseconds.
+  int roundToSecondMillis() =>
+      roundToSeconds() * Duration.millisecondsPerSecond;
+
+  /// Equivalent to `Duration(milliseconds: millis).roundToSecondMillis()`, but without wrapping a Duration.\
+  /// Result is in milliseconds.
+  static int roundMillisToSecond(int millis) =>
+      Duration.millisecondsPerSecond *
+      (millis / Duration.millisecondsPerSecond).round();
 }

@@ -76,8 +76,8 @@ class Task {
 
   /// Duración estimada
   @ignore
-  Duration? get estimatedTime => estimatedTimeMillis != null
-      ? Duration(milliseconds: estimatedTimeMillis!)
+  Duration? get estimatedTime => _estimatedTimeMillis != null
+      ? Duration(milliseconds: _estimatedTimeMillis!)
       : null;
 
   set estimatedTime(Duration? duration) {
@@ -86,7 +86,7 @@ class Task {
 
   /// Tiempo total acumulado
   @ignore
-  Duration get totalTime => Duration(milliseconds: totalTimeMillis);
+  Duration get totalTime => Duration(milliseconds: _totalTimeMillis);
 
   set totalTime(Duration duration) {
     totalTimeMillis = duration.inMilliseconds;
@@ -117,7 +117,7 @@ class Task {
   String get timerLabel {
     if (isRunning) {
       return 'Pausar';
-    } else if (totalTimeMillis > 0) {
+    } else if (_totalTimeMillis > 0) {
       return 'Reanudar';
     } else {
       return 'Empezar';
@@ -126,27 +126,49 @@ class Task {
 
   /// Calcular desviación
   void _updateDeviation() {
-    if (estimatedTimeMillis != null) {
+    if (_estimatedTimeMillis != null) {
       _progressEstimation =
-          calculateProgressEstimation(totalTimeMillis, estimatedTimeMillis!);
+          calculateProgressEstimation(_totalTimeMillis, _estimatedTimeMillis!);
       _deviation = _progressEstimation - 100;
     }
   }
 
-  /// Calcular tiempo transcurrido desde la última actualización del tiempo
-  (DateTime now, Duration elapsed) updateElapsedTime() {
+  /// Calcula el tiempo transcurrido desde la última actualización del tiempo.
+  ///
+  /// Si [roundToSecond] es `true` el tiempo transcurrido se redondea al segundo más cercano.
+  ///
+  /// Devuelve el tiempo actual usado para calcular la diferencia y los milisegundos transcurridos.
+  (DateTime now, int elapsedMillis) updateElapsedTime({
+    bool roundToSecond = false,
+  }) {
     final now = DateTime.now();
     final elapsed = now.difference(lastUpdated);
-    totalTimeMillis += elapsed.inMilliseconds;
+    int elapsedMillis;
+
+    if (roundToSecond) {
+      elapsedMillis = elapsed.roundToSecondMillis();
+      _totalTimeMillis = DurationFormat.roundMillisToSecond(
+        _totalTimeMillis + elapsedMillis,
+      );
+    } else {
+      elapsedMillis = elapsed.inMilliseconds;
+      _totalTimeMillis += elapsedMillis;
+    }
+
+    lastUpdated = now;
+
+    _updateDeviation();
+
     log(
       enabled: true,
       'Elapsed: ${(elapsed.inMilliseconds / Duration.millisecondsPerSecond).toStringAsFixed(3)}'
       '  Now: ${now.formatTime()}'
       '  From: ${lastUpdated.formatTime()}'
+      '  +${(elapsedMillis / Duration.millisecondsPerSecond).toStringAsFixed(3)}'
       '  Total: $totalTime (${totalTime.format()})',
     );
-    lastUpdated = now;
-    return (now, elapsed);
+
+    return (now, elapsedMillis);
   }
 
   static double calculateProgressEstimation(int totalTime, int estimatedTime) {

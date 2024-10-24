@@ -155,6 +155,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Título editable
             GestureDetector(
@@ -212,26 +213,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   ),
                 ),
               ),
-            // Duración estimada
-            if (widget.task.estimatedTimeMillis != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: LabelValue(
-                  label: 'Estimación',
-                  value: widget.task.estimatedTime!.format(),
-                  valueStyle: const TextStyle(fontWeight: FontWeight.normal),
-                ),
-              ),
-            // Estimación de hora de finalización
-            if (widget.task.isRunning && _estimatedEndTime != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: LabelValue(
-                  label: 'Finalización estimada',
-                  value: _estimatedEndTime!.formatTimeFuture(),
-                  separator: ':\n',
-                ),
-              ),
             // Tiempo
             if (widget.task.totalTimeMillis > 0)
               LabelValue(
@@ -244,10 +225,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 value: widget.task.todayTime!.format(),
                 separator: ':   ', // Space: 1 + "Total".length - "Hoy".length
               ),
-            SizedBox(height: 10),
             if (widget.task.archived)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Text(
                   'Esta tarea está archivada',
                   style: TextStyle(
@@ -258,22 +238,43 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               )
             else
               // Play / Pause
-              TimerButton(
-                isRunning: widget.task.isRunning,
-                label: widget.task.timerLabel,
-                onPressed: () async {
-                  await _taskProvider.toggleTaskTimer(widget.task);
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: TimerButton(
+                  isRunning: widget.task.isRunning,
+                  label: widget.task.timerLabel,
+                  onPressed: () async {
+                    await _taskProvider.toggleTaskTimer(widget.task);
 
-                  if (widget.task.isRunning) {
-                    // Play
-                    _updateEstimatedEndTime();
-                  } else {
-                    // Pause
-                    _updateTimeHistoryChart();
-                  }
-                },
+                    if (widget.task.isRunning) {
+                      // Play
+                      _updateEstimatedEndTime();
+                    } else {
+                      // Pause
+                      _updateTimeHistoryChart();
+                    }
+                  },
+                ),
               ),
-            SizedBox(height: 20),
+            // Estimación de hora de finalización
+            if (widget.task.isRunning && _estimatedEndTime != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: LabelValue(
+                  label: 'Finalización estimada',
+                  value: _estimatedEndTime!.formatTimeFuture(),
+                  separator: ': ',
+                ),
+              ),
+            // Duración estimada
+            if (widget.task.estimatedTimeMillis != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: LabelValue(
+                  label: 'Estimación',
+                  value: widget.task.estimatedTime!.format(),
+                ),
+              ),
             // Estadísticas
             if (widget.task.estimatedTimeMillis != null &&
                 widget.task.estimatedTimeMillis! > 0)

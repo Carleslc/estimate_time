@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -34,6 +36,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   DateTime? _estimatedEndTime;
 
+  late bool _isVertical;
+  late double _chartHeight;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +49,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _calculateSizes();
     _updateEstimatedEndTime();
     _updateTimeHistoryChart();
     _taskProvider.setTodayTime(widget.task);
@@ -53,6 +59,16 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   void dispose() {
     _taskProvider.removeListener(_updateTimeHistoryChart);
     super.dispose();
+  }
+
+  void _calculateSizes() {
+    // Orientación actual
+    _isVertical = MediaQuery.orientationOf(context) == Orientation.portrait;
+    // Calcular la altura del gráfico
+    double screenHeight = MediaQuery.sizeOf(context).height;
+    _chartHeight = _isVertical
+        ? screenHeight * (widget.task.estimatedTimeMillis != null ? 0.45 : 0.6)
+        : screenHeight * 0.7;
   }
 
   Future<void> _updateTimeHistoryChart({bool setState = true}) async {
@@ -151,15 +167,15 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
         ],
       ),
-      // Scroll dinámico usando CustomScrollView con Slivers
-      body: CustomScrollView(
-        slivers: [
-          // SliverToBoxAdapter para widgets que no necesitan scroll específico
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Column(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Título editable
                   GestureDetector(
@@ -300,30 +316,27 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     ),
                 ],
               ),
-            ),
-          ),
-          // SliverFillRemaining para el gráfico
-          SliverFillRemaining(
-            hasScrollBody: true, // Permite que el Sliver maneje el scroll
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                constraints: BoxConstraints(
-                  // Altura mínima (no funciona con SliverFillRemaining)
-                  minHeight: 200,
-                ),
-                child: _chartData.isNotEmpty
-                    ? TimeChart(
-                        chartData: _chartData,
-                        chartLabels: _chartLabels,
-                      )
-                    : widget.task.totalTimeMillis == 0
-                        ? const Center(child: Text('Sin tiempo registrado'))
-                        : const SizedBox.shrink(),
+              Column(
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: 200,
+                      maxHeight: max(200, _chartHeight),
+                    ),
+                    child: _chartData.isNotEmpty
+                        ? TimeChart(
+                            chartData: _chartData,
+                            chartLabels: _chartLabels,
+                          )
+                        : widget.task.totalTimeMillis == 0
+                            ? const Center(child: Text('Sin tiempo registrado'))
+                            : const SizedBox.shrink(),
+                  ),
+                ],
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

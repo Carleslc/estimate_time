@@ -66,8 +66,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   Project? _selectedProject;
   Duration? _estimatedTime;
 
-  late int _estimatedHours;
-  late int _estimatedMinutes;
+  int? _estimatedHours;
+  int? _estimatedMinutes;
 
   List<Project> _availableProjects = [];
 
@@ -82,10 +82,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     _titleController.text = _title;
     _description = widget.description ?? '';
     _descriptionController.text = _description;
-    _estimatedHours = widget.estimatedHours ?? 0;
-    _estimatedHoursController.text = _estimatedHours.toString();
-    _estimatedMinutes = widget.estimatedMinutes ?? 0;
-    _estimatedMinutesController.text = _estimatedMinutes.toString();
+    _estimatedHours = widget.estimatedHours;
+    _estimatedHoursController.text = _estimatedHours?.toString() ?? '';
+    _estimatedMinutes = widget.estimatedMinutes;
+    _estimatedMinutesController.text = _estimatedMinutes?.toString() ?? '';
     _loadAvailableProjects();
     _requiredTitleUpdate();
   }
@@ -195,7 +195,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       ),
       insetPadding: const EdgeInsets.symmetric(
         // Outside padding
-        horizontal: 50,
+        horizontal: 48,
         vertical: 20,
       ),
       content: SizedBox(
@@ -335,10 +335,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             }
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();
-              if (_estimatedHours > 0 || _estimatedMinutes > 0) {
+              _estimatedHours ??= 0;
+              _estimatedMinutes ??= 0;
+              if (_estimatedHours! > 0 || _estimatedMinutes! > 0) {
                 _estimatedTime = Duration(
-                  hours: _estimatedHours,
-                  minutes: _estimatedMinutes,
+                  hours: _estimatedHours!,
+                  minutes: _estimatedMinutes!,
                 );
               }
               final taskProvider = context.read<TaskProvider>();

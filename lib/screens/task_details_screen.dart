@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -61,16 +59,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     super.dispose();
   }
 
-  void _calculateSizes() {
-    // Orientación actual
-    _isVertical = MediaQuery.orientationOf(context) == Orientation.portrait;
-    // Calcular la altura del gráfico
-    double screenHeight = MediaQuery.sizeOf(context).height;
-    _chartHeight = _isVertical
-        ? screenHeight * (widget.task.estimatedTimeMillis != null ? 0.45 : 0.6)
-        : screenHeight * 0.7;
-  }
-
   Future<void> _updateTimeHistoryChart({bool setState = true}) async {
     await widget.task.timeHistory.load();
 
@@ -121,6 +109,24 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     }
   }
 
+  void _calculateSizes() {
+    // Orientación actual
+    _isVertical = MediaQuery.orientationOf(context) == Orientation.portrait;
+    // Calcular la altura del gráfico
+    double screenHeight = MediaQuery.sizeOf(context).height;
+    double percent;
+    if (_isVertical) {
+      // Portrait
+      percent = widget.task.estimatedTimeMillis != null
+          ? 0.45
+          : (widget.task.description.isNotEmpty ? 0.5 : 0.6);
+    } else {
+      // Landscape
+      percent = 0.7; // Scroll
+    }
+    _chartHeight = screenHeight * percent;
+  }
+
   String get _progressOrDeviation {
     int progressEstimation = widget.task.progressEstimation.round();
     return progressEstimation <= 100
@@ -167,13 +173,13 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
+      body: CustomScrollView(
+        slivers: [
+          // Detalles de la tarea
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -316,27 +322,33 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     ),
                 ],
               ),
-              Column(
-                children: [
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: 200,
-                      maxHeight: max(200, _chartHeight),
-                    ),
-                    child: _chartData.isNotEmpty
-                        ? TimeChart(
-                            chartData: _chartData,
-                            chartLabels: _chartLabels,
-                          )
-                        : widget.task.totalTimeMillis == 0
-                            ? const Center(child: Text('Sin tiempo registrado'))
-                            : const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
+          if (_isVertical)
+            SliverFillRemaining(child: _chartWidget())
+          else
+            SliverToBoxAdapter(child: _chartWidget())
+        ],
+      ),
+    );
+  }
+
+  Widget _chartWidget() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 16, 10),
+      child: Container(
+        height: _chartHeight,
+        constraints: const BoxConstraints(
+          minHeight: 200,
         ),
+        child: _chartData.isNotEmpty
+            ? TimeChart(
+                chartData: _chartData,
+                chartLabels: _chartLabels,
+              )
+            : widget.task.totalTimeMillis == 0
+                ? const Center(child: Text('Sin tiempo registrado'))
+                : const SizedBox.shrink(),
       ),
     );
   }

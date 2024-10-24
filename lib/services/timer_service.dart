@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
 
-import '../utils/log.dart';
-
 class TimerService {
   // Singleton Pattern
   TimerService._();
@@ -10,7 +8,7 @@ class TimerService {
   factory TimerService() => _instance;
 
   // Duración del tick
-  static const tickDuration = Duration(milliseconds: 500);
+  static const tickDuration = Duration(seconds: 1);
 
   // Mapa que asocia el ID del cronómetro con su Timer
   final Map<int, Timer> _timers = {};
@@ -20,11 +18,8 @@ class TimerService {
       {Duration syncTime = Duration.zero}) {
     if (isRunning(id)) return;
 
-    // Inicia el cronómetro al segundo en punto de [syncTime]
-    _atStartOfNextSecond(id, syncTime, () {
-      _timers[id] = Timer.periodic(tickDuration, (timer) {
-        onTick();
-      });
+    _timers[id] = Timer.periodic(tickDuration, (timer) {
+      onTick();
     });
   }
 
@@ -45,22 +40,5 @@ class TimerService {
   void stopAll() {
     _timers.forEach((key, timer) => timer.cancel());
     _timers.clear();
-  }
-
-  /// Execute [onNextSecond] at the next beginning of second of [syncTime]
-  void _atStartOfNextSecond(
-      int id, Duration syncTime, VoidCallback onNextSecond) {
-    int fractionMicroseconds =
-        syncTime.inMicroseconds.remainder(Duration.microsecondsPerSecond);
-    Duration remainingTimeToNextSecond = Duration(
-      microseconds: fractionMicroseconds > 0
-          ? (Duration.microsecondsPerSecond - fractionMicroseconds)
-          : 0,
-    );
-    log(enabled: false, 'Start timer in: $remainingTimeToNextSecond');
-    _timers[id] = Timer(
-      remainingTimeToNextSecond,
-      onNextSecond,
-    );
   }
 }

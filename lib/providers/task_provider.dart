@@ -133,7 +133,7 @@ class TaskProvider with ChangeNotifier {
 
     // Inicia el cronómetro
     _timerService.startTimer(task.id, () {
-      _updateTimeUI(task);
+      _updateTimeOnTick(task);
     });
 
     await updateTask(task);
@@ -162,7 +162,7 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _updateTimeUI(Task task) async {
+  Future<void> _updateTimeOnTick(Task task) async {
     // Actualizar tiempo
     await _updateTime(task);
 

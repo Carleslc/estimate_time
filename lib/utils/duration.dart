@@ -4,7 +4,7 @@ extension DurationFormatting on Duration {
   static String twoDigits(int n) => n.toString().padLeft(2, '0');
 
   String formatTime({bool withSeconds = true}) {
-    var (hours, minutes, seconds) = _timePartsRound();
+    var (hours, minutes, seconds) = _timeParts();
 
     String formatted = '${twoDigits(hours)}:${twoDigits(minutes)}';
 
@@ -16,7 +16,7 @@ extension DurationFormatting on Duration {
   }
 
   String format({bool withSeconds = true}) {
-    var (hours, minutes, seconds) = _timePartsRound();
+    var (hours, minutes, seconds) = _timeParts();
 
     String formatted = '';
     if (hours > 0) {
@@ -37,7 +37,7 @@ extension DurationFormatting on Duration {
 
   double get totalHours => inMicroseconds / Duration.microsecondsPerHour;
 
-  (int hours, int minutes, int seconds) _timePartsRound() {
+  (int hours, int minutes, int seconds) _timeParts() {
     double remainderSeconds = totalSeconds;
     // entire hours
     int hours = remainderSeconds ~/ Duration.secondsPerHour;
@@ -47,15 +47,6 @@ extension DurationFormatting on Duration {
     remainderSeconds -= minutes * Duration.secondsPerMinute;
     // round seconds
     int seconds = remainderSeconds.truncate();
-    // adjust rounding seconds, minutes, hours
-    if (seconds == Duration.secondsPerMinute) {
-      minutes++;
-      seconds = 0;
-      if (minutes == Duration.minutesPerHour) {
-        hours++;
-        minutes = 0;
-      }
-    }
     return (hours, minutes, seconds);
   }
 }

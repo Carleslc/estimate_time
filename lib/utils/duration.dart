@@ -3,20 +3,28 @@ final hourInMinutes = Duration.minutesPerHour.toDouble();
 extension DurationFormatting on Duration {
   static String twoDigits(int n) => n.toString().padLeft(2, '0');
 
-  String formatTime({bool withSeconds = true}) {
-    var (hours, minutes, seconds) = _timeParts();
+  String formatTime({bool withSeconds = true, bool withSecondsPart = false}) {
+    var (hours, minutes, remainingSeconds) = _timeParts();
 
     String formatted = '${twoDigits(hours)}:${twoDigits(minutes)}';
 
     if (withSeconds) {
-      formatted += ':${twoDigits(seconds)}';
+      formatted += ':';
+      if (withSecondsPart) {
+        int seconds = remainingSeconds.truncate();
+        int fraction = ((remainingSeconds - seconds) * 100).round();
+        formatted += '${twoDigits(seconds)}.${twoDigits(fraction)}';
+      } else {
+        int seconds = remainingSeconds.truncate();
+        formatted += twoDigits(seconds);
+      }
     }
 
     return formatted;
   }
 
   String format({bool withSeconds = true}) {
-    var (hours, minutes, seconds) = _timeParts();
+    var (hours, minutes, remainingSeconds) = _timeParts();
 
     String formatted = '';
     if (hours > 0) {
@@ -25,9 +33,14 @@ extension DurationFormatting on Duration {
     if (minutes > 0) {
       formatted += ' $minutes min';
     }
-    if (withSeconds && seconds > 0) {
-      formatted += ' $seconds s';
+    if (withSeconds) {
+      int seconds = remainingSeconds.truncate();
+
+      if (seconds > 0 || formatted.isEmpty) {
+        formatted += ' $seconds s';
+      }
     }
+
     return formatted.trim();
   }
 
@@ -37,16 +50,15 @@ extension DurationFormatting on Duration {
 
   double get totalHours => inMicroseconds / Duration.microsecondsPerHour;
 
-  (int hours, int minutes, int seconds) _timeParts() {
+  (int hours, int minutes, double seconds) _timeParts() {
     double remainderSeconds = totalSeconds;
     // entire hours
     int hours = remainderSeconds ~/ Duration.secondsPerHour;
     remainderSeconds -= hours * Duration.secondsPerHour;
     // entire minutes
     int minutes = remainderSeconds ~/ Duration.secondsPerMinute;
+    // remaining seconds
     remainderSeconds -= minutes * Duration.secondsPerMinute;
-    // round seconds
-    int seconds = remainderSeconds.truncate();
-    return (hours, minutes, seconds);
+    return (hours, minutes, remainderSeconds);
   }
 }

@@ -18,6 +18,10 @@ class TimeEntry {
   @ignore
   Duration get duration => Duration(milliseconds: milliseconds);
 
+  set duration(Duration duration) {
+    milliseconds = duration.inMilliseconds;
+  }
+
   @ignore
   DateTime get day => date.toDate();
 

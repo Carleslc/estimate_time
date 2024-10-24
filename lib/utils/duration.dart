@@ -61,4 +61,11 @@ extension DurationFormatting on Duration {
     remainderSeconds -= minutes * Duration.secondsPerMinute;
     return (hours, minutes, remainderSeconds);
   }
+
+  Duration roundToSecond() {
+    int ms = Duration.microsecondsPerSecond;
+    int timeSeconds = (inMicroseconds / ms).truncate();
+    int roundedSecond = ((inMicroseconds % ms) / ms).round();
+    return Duration(microseconds: (timeSeconds + roundedSecond) * ms);
+  }
 }

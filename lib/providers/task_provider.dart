@@ -10,6 +10,7 @@ import '../models/time_entry.dart';
 import '../services/isar_service.dart';
 import '../services/timer_service.dart';
 import '../utils/date.dart';
+import '../utils/duration.dart';
 import '../utils/log.dart';
 import '../utils/message.dart';
 
@@ -128,13 +129,18 @@ class TaskProvider with ChangeNotifier {
   Future<void> _runTimer(Task task) async {
     if (_timerService.isRunning(task.id)) return;
 
-    task.isRunning = true;
+    // Ajusta el tiempo al último segundo
+    await _roundLastTimeEntry(task);
+
     task.lastUpdated = DateTime.now();
 
     // Inicia el cronómetro
     _timerService.startTimer(task.id, () {
       _updateTimeOnTick(task);
     });
+
+    // Actualiza el estado
+    task.isRunning = true;
 
     await updateTask(task);
   }
@@ -179,38 +185,73 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> _updateTimeEntry(
-      Task task, DateTime now, Duration elapsed) async {
-    final isar = await _isarService.db;
+    Task task,
+    DateTime now,
+    Duration elapsed,
+  ) async {
     await task.timeHistory.load();
 
-    await isar.writeTxn(() async {
-      TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
+    TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
 
-      if (timeEntry == null || !timeEntry.date.isSameDay(now)) {
-        // Crear un nuevo TimeEntry
-        timeEntry = TimeEntry()
-          ..date = now
-          ..milliseconds = elapsed.inMilliseconds;
-        // Añadir el nuevo TimeEntry
-        await isar.timeEntries.put(timeEntry);
+    bool isNew = timeEntry == null || !timeEntry.date.isSameDay(now);
+
+    if (isNew) {
+      // Crear un nuevo TimeEntry
+      timeEntry = TimeEntry()
+        ..date = now
+        ..milliseconds = elapsed.inMilliseconds;
+    } else {
+      // Actualizar el TimeEntry existente
+      timeEntry.milliseconds += elapsed.inMilliseconds;
+    }
+
+    // Actualizar todayTime
+    task.todayTimeEntry = timeEntry;
+
+    // Actualizar el TimeEntry (DB)
+    await _setTimeEntry(task, timeEntry, add: isNew);
+  }
+
+  Future<void> _setTimeEntry(
+    Task task,
+    TimeEntry timeEntry, {
+    bool add = false,
+  }) async {
+    final isar = await _isarService.db;
+
+    await isar.writeTxn(() async {
+      // Actualizar el TimeEntry
+      await isar.timeEntries.put(timeEntry);
+
+      // Añade el TimeEntry
+      if (add) {
         task.timeHistory.add(timeEntry);
         log('New: ${task.timeHistory.lastOrNull}, $task');
       } else {
-        // Actualizar el TimeEntry existente
-        timeEntry.milliseconds += elapsed.inMilliseconds;
-        await isar.timeEntries.put(timeEntry);
-        log(enabled: false, 'Update: $timeEntry');
+        log(enabled: true, 'Update: $timeEntry');
       }
 
-      // Actualiza todayTime
-      task.todayTimeEntry = timeEntry;
-
-      // Actualizar historial (DB)
+      // Actualizar historial
       await task.timeHistory.save();
 
-      // Actualizar tarea (DB)
+      // Actualizar tarea
       await isar.tasks.put(task);
     });
+  }
+
+  Future<void> _roundLastTimeEntry(Task task) async {
+    await task.timeHistory.load();
+
+    TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
+
+    if (timeEntry != null) {
+      // Redondea los milisegundos al último segundo
+      task.totalTime = task.totalTime.roundToSecond();
+      timeEntry.duration = timeEntry.duration.roundToSecond();
+
+      // Actualiza el TimeEntry
+      await _setTimeEntry(task, timeEntry);
+    }
   }
 
   void setTodayTime(Task task) {

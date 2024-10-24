@@ -139,7 +139,7 @@ class Task {
     final elapsed = now.difference(lastUpdated);
     totalTimeMillis += elapsed.inMilliseconds;
     log(
-      enabled: false,
+      enabled: true,
       'Elapsed: ${(elapsed.inMilliseconds / Duration.millisecondsPerSecond).toStringAsFixed(3)}'
       '  Now: ${now.formatTime()}'
       '  From: ${lastUpdated.formatTime()}'

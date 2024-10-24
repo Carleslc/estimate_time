@@ -151,160 +151,179 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Título editable
-            GestureDetector(
-              onTap: () => _editTitle(context),
-              child: Row(
+      // Scroll dinámico usando CustomScrollView con Slivers
+      body: CustomScrollView(
+        slivers: [
+          // SliverToBoxAdapter para widgets que no necesitan scroll específico
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      widget.task.title,
-                      style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  // Título editable
+                  GestureDetector(
+                    onTap: () => _editTitle(context),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.task.title,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  SizedBox(height: 10),
+                  // Etiqueta del Proyecto
+                  FutureBuilder<Project?>(
+                    future: widget.task.getProject(),
+                    builder: (_, snapshot) {
+                      final project = snapshot.data;
+                      if (project == null) return const SizedBox.shrink();
+                      return GestureDetector(
+                        onTap: () {
+                          context
+                              .read<NavigationProvider>()
+                              .navigateToProjectDetails(context, project);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: ProjectTag(project: project),
+                        ),
+                      );
+                    },
+                  ),
+                  // Descripción editable
+                  if (widget.task.description.isNotBlank)
+                    GestureDetector(
+                      onTap: () => _editDescription(context),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.task.description,
+                                softWrap: true,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  // Tiempo
+                  if (widget.task.totalTimeMillis > 0)
+                    LabelValue(
+                      label: 'Total',
+                      value: widget.task.totalTime.format(),
+                    ),
+                  if (widget.task.todayTimeMillis != null)
+                    LabelValue(
+                      label: 'Hoy',
+                      value: widget.task.todayTime!.format(),
+                      separator: ':   ',
+                    ),
+                  if (widget.task.archived)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Text(
+                        'Esta tarea está archivada',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    )
+                  else
+                    // Play / Pause
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: TimerButton(
+                        isRunning: widget.task.isRunning,
+                        label: widget.task.timerLabel,
+                        onPressed: () async {
+                          await _taskProvider.toggleTaskTimer(widget.task);
+
+                          if (widget.task.isRunning) {
+                            // Play
+                            _updateEstimatedEndTime();
+                          } else {
+                            // Pause
+                            _updateTimeHistoryChart();
+                          }
+                        },
+                      ),
+                    ),
+                  // Estimación de hora de finalización
+                  if (widget.task.isRunning && _estimatedEndTime != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: LabelValue(
+                        label: 'Finalización estimada',
+                        value: _estimatedEndTime!.formatTimeFuture(),
+                        separator: ': ',
+                      ),
+                    ),
+                  // Duración estimada
+                  if (widget.task.estimatedTimeMillis != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: LabelValue(
+                        label: 'Estimación',
+                        value: widget.task.estimatedTime!.format(),
+                      ),
+                    ),
+                  // Estadísticas
+                  if (widget.task.estimatedTimeMillis != null &&
+                      widget.task.estimatedTimeMillis! > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: LabelValue(
+                        label: widget.task.progressEstimation <= 100
+                            ? 'Progreso estimado'
+                            : 'Desviación',
+                        value: _progressOrDeviation,
+                        valueStyle: TextStyle(
+                          color: widget.task.deviation <= 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-            SizedBox(height: 10),
-            // Etiqueta del Proyecto
-            FutureBuilder<Project?>(
-              future: widget.task.getProject(),
-              builder: (_, snapshot) {
-                final project = snapshot.data;
-                if (project == null) return const SizedBox.shrink();
-                return GestureDetector(
-                  onTap: () {
-                    context
-                        .read<NavigationProvider>()
-                        .navigateToProjectDetails(context, project);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: ProjectTag(project: project),
-                  ),
-                );
-              },
+          ),
+          // SliverFillRemaining para el gráfico
+          SliverFillRemaining(
+            hasScrollBody: true, // Permite que el Sliver maneje el scroll
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                constraints: BoxConstraints(
+                  // Altura mínima (no funciona con SliverFillRemaining)
+                  minHeight: 200,
+                ),
+                child: _chartData.isNotEmpty
+                    ? TimeChart(
+                        chartData: _chartData,
+                        chartLabels: _chartLabels,
+                      )
+                    : widget.task.totalTimeMillis == 0
+                        ? const Center(child: Text('Sin tiempo registrado'))
+                        : const SizedBox.shrink(),
+              ),
             ),
-            // Descripción editable
-            if (widget.task.description.isNotBlank)
-              GestureDetector(
-                onTap: () => _editDescription(context),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.task.description,
-                          softWrap: true,
-                          style: const TextStyle(
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            // Tiempo
-            if (widget.task.totalTimeMillis > 0)
-              LabelValue(
-                label: 'Total',
-                value: widget.task.totalTime.format(),
-              ),
-            if (widget.task.todayTimeMillis != null)
-              LabelValue(
-                label: 'Hoy',
-                value: widget.task.todayTime!.format(),
-                separator: ':   ', // Space: 1 + "Total".length - "Hoy".length
-              ),
-            if (widget.task.archived)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'Esta tarea está archivada',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
-              )
-            else
-              // Play / Pause
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: TimerButton(
-                  isRunning: widget.task.isRunning,
-                  label: widget.task.timerLabel,
-                  onPressed: () async {
-                    await _taskProvider.toggleTaskTimer(widget.task);
-
-                    if (widget.task.isRunning) {
-                      // Play
-                      _updateEstimatedEndTime();
-                    } else {
-                      // Pause
-                      _updateTimeHistoryChart();
-                    }
-                  },
-                ),
-              ),
-            // Estimación de hora de finalización
-            if (widget.task.isRunning && _estimatedEndTime != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: LabelValue(
-                  label: 'Finalización estimada',
-                  value: _estimatedEndTime!.formatTimeFuture(),
-                  separator: ': ',
-                ),
-              ),
-            // Duración estimada
-            if (widget.task.estimatedTimeMillis != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: LabelValue(
-                  label: 'Estimación',
-                  value: widget.task.estimatedTime!.format(),
-                ),
-              ),
-            // Estadísticas
-            if (widget.task.estimatedTimeMillis != null &&
-                widget.task.estimatedTimeMillis! > 0)
-              // Desviación
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: LabelValue(
-                  label: widget.task.progressEstimation <= 100
-                      ? 'Progreso estimado'
-                      : 'Desviación',
-                  value: _progressOrDeviation,
-                  valueStyle: TextStyle(
-                    color:
-                        widget.task.deviation <= 0 ? Colors.green : Colors.red,
-                  ),
-                ),
-              ),
-            // Gráfico de tiempo por día
-            Expanded(
-              child: _chartData.isNotEmpty
-                  ? TimeChart(
-                      chartData: _chartData,
-                      chartLabels: _chartLabels,
-                    )
-                  : widget.task.totalTimeMillis == 0
-                      ? const Center(child: Text('Sin tiempo registrado'))
-                      : const SizedBox.shrink(),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -9,6 +9,7 @@ class TimerButton extends StatelessWidget {
   final double? iconSize;
   final String? label;
   final String? tooltip;
+  final Size? minimumSize;
 
   TimerButton({
     super.key,
@@ -19,6 +20,7 @@ class TimerButton extends StatelessWidget {
     this.tooltip,
     Color? runColor,
     Color? pauseColor,
+    this.minimumSize,
   })  : runColor = runColor ?? Colors.green.shade400,
         pauseColor = pauseColor ?? Colors.red.shade400;
 
@@ -27,8 +29,14 @@ class TimerButton extends StatelessWidget {
         size: iconSize,
       );
 
-  ButtonStyle get style => IconButton.styleFrom(
+  ButtonStyle get iconButtonStyle => IconButton.styleFrom(
         iconSize: iconSize,
+        minimumSize: minimumSize,
+        backgroundColor: isRunning ? pauseColor : runColor,
+      );
+
+  ButtonStyle get labelButtonStyle => FilledButton.styleFrom(
+        minimumSize: minimumSize ?? const Size(160, 48),
         backgroundColor: isRunning ? pauseColor : runColor,
       );
 
@@ -42,12 +50,12 @@ class TimerButton extends StatelessWidget {
               style: TextStyle(color: Colors.white),
             ),
             icon: icon,
-            style: style,
+            style: labelButtonStyle,
           )
         : IconButton.filled(
             icon: icon,
             color: Colors.white,
-            style: style,
+            style: iconButtonStyle,
             onPressed: onPressed,
           );
     if (tooltip != null) {

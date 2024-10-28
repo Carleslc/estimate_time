@@ -206,7 +206,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 label: 'Tiempo total',
                 value: Duration(milliseconds: _totalMilliseconds).format(),
               ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             // Tiempo medio
             if (_projectTasks.length > 1 && _avgMilliseconds > 0)
               Padding(
@@ -214,7 +214,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 child: LabelValue(
                   label: 'Tiempo medio',
                   value: Duration(milliseconds: _avgMilliseconds)
-                      .format(withSeconds: false),
+                      .format(withSeconds: true),
                 ),
               ),
             if (_totalEstimatedMillis > 0)

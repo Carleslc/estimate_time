@@ -225,7 +225,9 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     GestureDetector(
                       onTap: () => _editDescription(context),
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
+                        padding: EdgeInsets.only(
+                          bottom: widget.task.totalTimeMillis > 0 ? 20 : 0,
+                        ),
                         child: Row(
                           children: [
                             Expanded(
@@ -255,7 +257,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                     ),
                   if (widget.task.archived)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      padding: EdgeInsets.only(
+                        top: 30,
+                        bottom:
+                            widget.task.estimatedTimeMillis != null ? 32 : 22,
+                      ),
                       child: Text(
                         'Esta tarea está archivada',
                         style: TextStyle(
@@ -267,7 +273,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   else
                     // Play / Pause
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding: EdgeInsets.only(
+                        top: 20,
+                        bottom:
+                            widget.task.estimatedTimeMillis != null ? 20 : 10,
+                      ),
                       child: TimerButton(
                         isRunning: widget.task.isRunning,
                         label: widget.task.timerLabel,
@@ -324,33 +334,39 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               ),
             ),
           ),
-          if (_isVertical)
-            SliverFillRemaining(child: _chartWidget())
-          else
-            SliverToBoxAdapter(child: _chartWidget())
+          _chartWidget(),
         ],
       ),
     );
   }
 
   Widget _chartWidget() {
-    return Padding(
+    bool hasChartData = _chartData.isNotEmpty;
+
+    final chart = hasChartData
+        ? TimeChart(
+            chartData: _chartData,
+            chartLabels: _chartLabels,
+          )
+        : widget.task.totalTimeMillis == 0
+            ? const Center(child: Text('Sin tiempo registrado'))
+            : const SizedBox.shrink();
+
+    final chartContainer = Padding(
       padding: const EdgeInsets.fromLTRB(10, 0, 16, 10),
       child: Container(
         height: _chartHeight,
-        constraints: const BoxConstraints(
-          minHeight: 200,
-        ),
-        child: _chartData.isNotEmpty
-            ? TimeChart(
-                chartData: _chartData,
-                chartLabels: _chartLabels,
-              )
-            : widget.task.totalTimeMillis == 0
-                ? const Center(child: Text('Sin tiempo registrado'))
-                : const SizedBox.shrink(),
+        constraints: hasChartData
+            ? const BoxConstraints(minHeight: 200)
+            : BoxConstraints(maxHeight: _isVertical ? double.infinity : 128),
+        child: chart,
       ),
     );
+
+    if (hasChartData && _isVertical) {
+      return SliverFillRemaining(child: chartContainer);
+    }
+    return SliverToBoxAdapter(child: chartContainer);
   }
 
   void _editTitle(BuildContext context) {

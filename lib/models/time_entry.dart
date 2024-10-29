@@ -1,12 +1,16 @@
 import 'package:isar/isar.dart';
 
 import '../utils/date.dart';
+import 'task.dart';
 
 part 'time_entry.g.dart';
 
 @Collection(accessor: 'timeEntries')
 class TimeEntry {
   Id id = Isar.autoIncrement;
+
+  @Backlink(to: 'timeHistory')
+  final task = IsarLink<Task>();
 
   late DateTime date;
 

@@ -148,11 +148,10 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               child: IconButton(
                 icon: Icon(Icons.delete),
                 onPressed: () async {
-                  await _taskProvider.deleteTask(context, widget.task);
-                  NavigationProvider.navigateToPage(
-                    context,
-                    AppPage.archivedTasks,
-                  );
+                  await _taskProvider.deleteTask(widget.task);
+                  context.read<NavigationProvider>().navigateToPage(
+                        AppPage.archivedTasks,
+                      );
                 },
               ),
             ),
@@ -162,11 +161,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             child: IconButton(
               icon:
                   Icon(widget.task.archived ? Icons.unarchive : Icons.archive),
-              onPressed: () {
+              onPressed: () async {
                 if (widget.task.archived) {
-                  _taskProvider.unarchiveTask(context, widget.task);
+                  await _taskProvider.unarchiveTask(widget.task);
                 } else {
-                  _taskProvider.archiveTask(context, widget.task);
+                  await _taskProvider.archiveTask(widget.task);
                 }
               },
             ),
@@ -178,7 +177,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           // Detalles de la tarea
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: EdgeInsets.only(left: 20, right: 20, top: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -211,7 +210,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                         onTap: () {
                           context
                               .read<NavigationProvider>()
-                              .navigateToProjectDetails(context, project);
+                              .navigateToProjectDetails(project);
                         },
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 10),

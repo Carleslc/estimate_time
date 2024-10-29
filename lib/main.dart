@@ -12,6 +12,7 @@ import 'providers/task_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/isar_service.dart';
 import 'styles/app_styles.dart';
+import 'utils/message.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,12 +55,15 @@ class _EstimateTimeAppState extends State<EstimateTimeApp> {
         home: HomeScreen(),
         theme: AppStyles.theme(context),
         debugShowCheckedModeBanner: false,
+        routes: NavigationProvider.routes,
+        navigatorKey: NavigationProvider.navigatorKey,
+        navigatorObservers: [NavigationProvider.routeObserver],
+        scaffoldMessengerKey: ShowMessage.scaffoldMessengerKey,
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         supportedLocales: [
           const Locale.fromSubtags(languageCode: 'es', countryCode: 'ES'),
           const Locale.fromSubtags(languageCode: 'en'),
         ],
-        navigatorObservers: [routeObserver],
       ),
     );
   }

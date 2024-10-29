@@ -24,100 +24,99 @@ class _ActiveTasksScreenState extends State<ActiveTasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TaskProvider>(
-      builder: (_, taskProvider, __) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tareas'),
+      ),
+      body: Consumer<TaskProvider>(builder: (_, taskProvider, __) {
         final tasks = taskProvider.tasks;
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Tareas'),
-          ),
-          body: tasks.isEmpty
-              ? Center(child: const Text('No hay tareas'))
-              : ListView.separated(
-                  itemCount: tasks.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (_, index) {
-                    final task = tasks[index];
-                    return Dismissible(
-                      key: Key(task.id.toString()),
-                      direction: DismissDirection.startToEnd,
-                      onDismissed: (_) {
-                        taskProvider.archiveTask(context, task);
-                      },
-                      background: Container(
-                        color: Colors.orange,
-                        alignment: Alignment.centerLeft,
-                        padding: EdgeInsets.symmetric(horizontal: 20),
-                        child: const Icon(Icons.archive, color: Colors.white),
+        return tasks.isEmpty
+            ? Center(child: const Text('No hay tareas'))
+            : ListView.separated(
+                itemCount: tasks.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (_, index) {
+                  final task = tasks[index];
+                  return Dismissible(
+                    key: Key(task.id.toString()),
+                    direction: DismissDirection.startToEnd,
+                    onDismissed: (_) async {
+                      await taskProvider.archiveTask(task);
+                    },
+                    background: Container(
+                      color: Colors.orange,
+                      alignment: Alignment.centerLeft,
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: const Icon(Icons.archive, color: Colors.white),
+                    ),
+                    child: ListTile(
+                      // Título
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Proyecto (etiqueta)
+                          FutureBuilder<Project?>(
+                            future: task.getProject(),
+                            builder: (_, snapshot) {
+                              if (snapshot.hasData && snapshot.data != null) {
+                                final project = snapshot.data!;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ProjectTag(
+                                    project: project,
+                                    dense: 3,
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                          // Título
+                          Text(
+                            task.title,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      child: ListTile(
-                        // Título
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Proyecto (etiqueta)
-                            FutureBuilder<Project?>(
-                              future: task.getProject(),
-                              builder: (_, snapshot) {
-                                if (snapshot.hasData && snapshot.data != null) {
-                                  final project = snapshot.data!;
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: ProjectTag(
-                                      project: project,
-                                      dense: 3,
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                            // Título
-                            Text(
-                              task.title,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Tiempo
-                        subtitle: Text(
-                          task.totalTime.formatTime(),
-                          style: TextStyle(fontSize: 20),
-                        ),
-                        // Play / Pause
-                        trailing: TimerButton(
-                          isRunning: task.isRunning,
-                          tooltip: task.timerLabel,
-                          onPressed: () {
-                            taskProvider.toggleTaskTimer(task);
-                          },
-                        ),
-                        // Detalles
-                        onTap: () {
-                          context
-                              .read<NavigationProvider>()
-                              .navigateToTaskDetails(context, task);
+                      // Tiempo
+                      subtitle: Text(
+                        task.totalTime.formatTime(),
+                        style: TextStyle(fontSize: 20),
+                      ),
+                      // Play / Pause
+                      trailing: TimerButton(
+                        isRunning: task.isRunning,
+                        tooltip: task.timerLabel,
+                        onPressed: () async {
+                          await taskProvider.toggleTaskTimer(task);
                         },
                       ),
-                    );
-                  },
-                ),
-          floatingActionButton: Tooltip(
-            message: 'Añadir tarea',
-            child: FloatingActionButton(
-              child: Icon(Icons.add),
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => AddTaskDialog(),
-              ),
-            ),
+                      // Detalles
+                      onTap: () {
+                        context
+                            .read<NavigationProvider>()
+                            .navigateToTaskDetails(task);
+                      },
+                    ),
+                  );
+                },
+              );
+      }),
+      floatingActionButton: Tooltip(
+        message: 'Añadir tarea',
+        child: FloatingActionButton(
+          heroTag: 'add_task_fab',
+          child: Icon(Icons.add),
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => AddTaskDialog(),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

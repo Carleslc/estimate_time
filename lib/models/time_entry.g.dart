@@ -34,7 +34,15 @@ const TimeEntrySchema = CollectionSchema(
   deserializeProp: _timeEntryDeserializeProp,
   idName: r'id',
   indexes: {},
-  links: {},
+  links: {
+    r'task': LinkSchema(
+      id: -8957040215303608530,
+      name: r'task',
+      target: r'Task',
+      single: true,
+      linkName: r'timeHistory',
+    )
+  },
   embeddedSchemas: {},
   getId: _timeEntryGetId,
   getLinks: _timeEntryGetLinks,
@@ -95,11 +103,12 @@ Id _timeEntryGetId(TimeEntry object) {
 }
 
 List<IsarLinkBase<dynamic>> _timeEntryGetLinks(TimeEntry object) {
-  return [];
+  return [object.task];
 }
 
 void _timeEntryAttach(IsarCollection<dynamic> col, Id id, TimeEntry object) {
   object.id = id;
+  object.task.attach(col, col.isar.collection<Task>(), r'task', id);
 }
 
 extension TimeEntryQueryWhereSort
@@ -347,7 +356,20 @@ extension TimeEntryQueryObject
     on QueryBuilder<TimeEntry, TimeEntry, QFilterCondition> {}
 
 extension TimeEntryQueryLinks
-    on QueryBuilder<TimeEntry, TimeEntry, QFilterCondition> {}
+    on QueryBuilder<TimeEntry, TimeEntry, QFilterCondition> {
+  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> task(
+      FilterQuery<Task> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'task');
+    });
+  }
+
+  QueryBuilder<TimeEntry, TimeEntry, QAfterFilterCondition> taskIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'task', 0, true, 0, true);
+    });
+  }
+}
 
 extension TimeEntryQuerySortBy on QueryBuilder<TimeEntry, TimeEntry, QSortBy> {
   QueryBuilder<TimeEntry, TimeEntry, QAfterSortBy> sortByDate() {

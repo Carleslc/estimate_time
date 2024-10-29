@@ -52,10 +52,12 @@ class ProjectProvider with ChangeNotifier {
     if (notify) notifyListeners();
   }
 
-  Future<void> deleteProject(BuildContext context, Project project) {
-    return tryOrShowError(context, () async {
+  Future<void> deleteProject(Project project, {VoidCallback? onRestored}) {
+    return tryOrShowError(() async {
       // Elimina el proyecto (UI)
       _projects.remove(project);
+
+      notifyListeners();
 
       final isar = await _isarService.db;
 
@@ -78,13 +80,14 @@ class ProjectProvider with ChangeNotifier {
         await isar.projects.delete(project.id);
       });
 
-      notifyListeners();
+      // Actualiza la lista de proyectos
+      await loadProjects();
 
       ShowMessage.projectDeleted(
-        context,
         project,
         (deletedProject) async {
-          await restoreProject(context, deletedProject);
+          await restoreProject(deletedProject);
+          onRestored?.call();
         },
       )?.closed.then((SnackBarClosedReason reason) {
         if (reason != SnackBarClosedReason.action) {
@@ -95,8 +98,8 @@ class ProjectProvider with ChangeNotifier {
     }, 'No se ha podido eliminar el proyecto');
   }
 
-  Future<void> restoreProject(BuildContext context, Project project) async {
-    return tryOrShowError(context, () async {
+  Future<void> restoreProject(final Project project) async {
+    return tryOrShowError(() async {
       // Restaurar el proyecto
       await updateProject(project, notify: false); // DB
 
@@ -114,7 +117,7 @@ class ProjectProvider with ChangeNotifier {
         await isar.writeTxn(() async {
           for (Task task in tasks) {
             task.project.value = restoredProject;
-            await isar.tasks.update(task);
+            await isar.tasks.saveLinks(task);
           }
         });
 
@@ -122,8 +125,10 @@ class ProjectProvider with ChangeNotifier {
         _freeProject(project);
       }
 
-      // Reload projects list
+      // Actualiza la lista de proyectos
       await loadProjects();
+
+      ShowMessage.projectRestored(restoredProject);
     }, 'No se ha podido restaurar el proyecto');
   }
 

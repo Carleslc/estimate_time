@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/navigation_provider.dart';
-import '../utils/message.dart';
 import 'active_tasks_screen.dart';
 import 'archived_tasks_screen.dart';
 import 'projects_screen.dart';
@@ -33,7 +32,10 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            child: _screens[navigationProvider.currentPage.index],
+            child: IndexedStack(
+              index: navigationProvider.currentPage.index,
+              children: _screens,
+            ),
           ),
           bottomNavigationBar: SizedBox(
             height: 70,
@@ -56,7 +58,6 @@ class HomeScreen extends StatelessWidget {
               onTap: (index) {
                 final selectedPage = AppPage.values[index];
                 navigationProvider.setPage(selectedPage);
-                ShowMessage.hideCurrentSnackBar(context);
               },
             ),
           ),

@@ -1,16 +1,19 @@
-# estimate_time
+# EstimateTime
 
-A new Flutter project.
+Estima y cuenta el tiempo de tus tareas y proyectos.
 
-## Getting Started
+TODO: Documentar README
 
-This project is a starting point for a Flutter application.
+## Generación de código automático
 
-A few resources to get you started if this is your first Flutter project:
+Los modelos `project.dart`, `task.dart` y `time_entry` están gestionados con la base de datos [Isar](https://isar-community.dev/v3/).
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Para generar el código correspondiente (ficheros `*.g.dart`), ejecuta:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+dart run build_runner build --delete-conflicting-outputs
+```
+
+## Recursos
+
+TODO: Documentar recursos

@@ -18,15 +18,19 @@ class TaskProvider with ChangeNotifier {
   final IsarService _isarService;
   final _timerService = TimerService(tickDuration: const Duration(seconds: 1));
 
-  List<Task> _tasks = [];
-  List<Task> _archivedTasks = [];
+  final Map<Id, Task> _tasks = {};
+  final Map<Id, Task> _archivedTasks = {};
 
-  List<Task> get tasks => UnmodifiableListView(_tasks);
-  List<Task> get archivedTasks => UnmodifiableListView(_archivedTasks);
-  List<Task> get allTasks => [..._tasks, ..._archivedTasks];
+  List<Task> get tasks => UnmodifiableListView(_tasks.values);
+  List<Task> get archivedTasks => UnmodifiableListView(_archivedTasks.values);
+  List<Task> get allTasks => [..._tasks.values, ..._archivedTasks.values];
 
   TaskProvider(IsarService isarService) : _isarService = isarService {
     _loadTasks();
+  }
+
+  Future<void> loadTasks() async {
+    _loadTasks(resumeTimers: false);
   }
 
   Future<void> _loadTasks({bool resumeTimers = true}) async {
@@ -34,29 +38,27 @@ class TaskProvider with ChangeNotifier {
     await _loadArchivedTasks();
 
     if (resumeTimers) {
-      final List<Future> _timers = [];
+      final List<Future> _timerFutures = [];
 
       // Reanudar cronómetros para tareas que estaban corriendo
-      for (var task in _tasks) {
+      for (Task task in _tasks.values) {
         if (task.isRunning) {
-          _timers.add(_resumeTimer(task));
+          _timerFutures.add(_resumeTimer(task.id));
         }
       }
 
       // Espera a que todos los cronómetros empiecen
-      await Future.wait(_timers);
+      await Future.wait(_timerFutures);
     }
 
     notifyListeners();
   }
 
-  Future<void> loadTasks() async {
-    _loadTasks(resumeTimers: false);
-  }
-
   Future<void> _loadActiveTasks() async {
     final isar = await _isarService.db;
-    _tasks = await isar.tasks.filter().archivedEqualTo(false).findAll();
+    final dbActiveTasks =
+        await isar.tasks.filter().archivedEqualTo(false).findAll();
+    _updateTasksList(_tasks, dbActiveTasks);
   }
 
   Future<void> loadActiveTasks() async {
@@ -66,12 +68,39 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> _loadArchivedTasks() async {
     final isar = await _isarService.db;
-    _archivedTasks = await isar.tasks.filter().archivedEqualTo(true).findAll();
+    final dbArchivedTasks =
+        await isar.tasks.filter().archivedEqualTo(true).findAll();
+    await _updateTasksList(_archivedTasks, dbArchivedTasks);
   }
 
   Future<void> loadArchivedTasks() async {
     await _loadArchivedTasks();
     notifyListeners();
+  }
+
+  Future<void> _updateTasksList(
+    Map<Id, Task> tasks,
+    final List<Task> updatedTasks,
+  ) async {
+    final Set<Id> existingIds = {};
+
+    // Actualizar tareas existentes y agregar nuevas
+    for (Task task in updatedTasks) {
+      existingIds.add(task.id);
+
+      if (_tasks.containsKey(task.id)) {
+        Task existingTask = tasks[task.id]!;
+        existingTask.update(task);
+      } else {
+        tasks[task.id] = task;
+      }
+
+      await task.timeHistory.load();
+      setTodayTime(task);
+    }
+
+    // Eliminar tareas que ya no existen
+    tasks.removeWhere((id, task) => !existingIds.contains(id));
   }
 
   Future<Task> createTask(
@@ -93,14 +122,17 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> _addTask(Task task) async {
-    // Añadir tarea (UI)
-    if (task.archived) {
-      _archivedTasks.add(task);
-    } else {
-      _tasks.add(task);
-    }
     // Añadir tarea (DB)
     await updateTask(task);
+
+    // Añadir tarea (UI)
+    if (task.archived) {
+      _archivedTasks[task.id] = task;
+    } else {
+      _tasks[task.id] = task;
+    }
+
+    log('Add Task: $task');
   }
 
   Future<void> updateTask(Task task, {bool notify = true}) async {
@@ -115,31 +147,33 @@ class TaskProvider with ChangeNotifier {
     if (task.isRunning) return;
 
     // Inicia el cronómetro
-    await _runTimer(task);
+    await _runTimer(task.id);
   }
 
-  Future<void> _resumeTimer(Task task) async {
+  Future<void> _resumeTimer(Id taskId) async {
     // Actualizar tiempo
-    await _updateTime(task);
+    await _updateTime(taskId);
 
     // Inicia el cronómetro
-    await _runTimer(task);
+    await _runTimer(taskId);
   }
 
-  Future<void> _runTimer(Task task) async {
-    if (_timerService.isRunning(task.id)) return;
+  Future<void> _runTimer(Id taskId) async {
+    if (_timerService.isRunning(taskId)) return;
+
+    final Task task = _getActiveTask(taskId);
 
     task.lastUpdated = DateTime.now();
 
     // Inicia el cronómetro
     _timerService.startTimer(
-      task.id,
+      taskId,
       syncTime: task.totalTime,
       onFirstTick: () {
-        _updateTimeOnTick(task, roundToSecond: false);
+        _updateTimeOnTick(taskId, roundToSecond: false);
       },
       onTick: () {
-        _updateTimeOnTick(task, roundToSecond: true);
+        _updateTimeOnTick(taskId, roundToSecond: true);
       },
     );
 
@@ -156,7 +190,7 @@ class TaskProvider with ChangeNotifier {
     task.isRunning = false;
 
     // Actualizar tiempo
-    await _updateTime(task);
+    await _updateTime(task.id);
 
     // Pausa el cronómetro
     _timerService.stopTimer(task.id);
@@ -173,17 +207,29 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> _updateTimeOnTick(
-    Task task, {
+    Id taskId, {
     required bool roundToSecond,
   }) async {
     // Actualizar tiempo
-    await _updateTime(task, roundToSecond: roundToSecond);
+    await _updateTime(taskId, roundToSecond: roundToSecond);
 
     // Actualizar UI
     notifyListeners();
   }
 
-  Future<void> _updateTime(Task task, {bool roundToSecond = false}) async {
+  Task _getActiveTask(Id taskId) {
+    final Task? task = _tasks[taskId]; // obtener de las tareas activas
+
+    if (task == null) {
+      throw StateError('Task not found: $taskId');
+    }
+
+    return task;
+  }
+
+  Future<void> _updateTime(Id taskId, {bool roundToSecond = false}) async {
+    final Task task = _getActiveTask(taskId);
+
     // Actualizar tiempo
     final (DateTime now, int elapsedMillis) =
         task.updateElapsedTime(roundToSecond: roundToSecond);
@@ -265,16 +311,20 @@ class TaskProvider with ChangeNotifier {
     }
   }
 
-  Future<void> archiveTask(BuildContext context, Task task) {
-    return tryOrShowError(context, () async {
-      // Archiva la tarea (UI)
-      _tasks.remove(task);
-
+  Future<void> archiveTask(Task task) {
+    return tryOrShowError(() async {
       // Pausa el cronómetro antes de archivar la tarea
       await pauseTimer(task);
 
-      // Archiva la tarea (DB)
+      // Archiva la tarea (UI)
       task.archived = true;
+
+      _tasks.remove(task.id);
+      _archivedTasks[task.id] = task;
+
+      notifyListeners();
+
+      // Archiva la tarea (DB)
       await updateTask(task, notify: false);
 
       // Actualiza la lista de tareas (archived)
@@ -282,19 +332,21 @@ class TaskProvider with ChangeNotifier {
 
       notifyListeners();
 
-      ShowMessage.taskArchived(context, task);
+      ShowMessage.taskArchived(task);
     }, 'No se ha podido archivar la tarea');
   }
 
-  Future<void> unarchiveTask(BuildContext context, Task task) {
-    return tryOrShowError(context, () async {
+  Future<void> unarchiveTask(Task task) {
+    return tryOrShowError(() async {
       // Desarchiva la tarea (UI)
-      _archivedTasks.remove(task);
+      task.archived = false;
+
+      _archivedTasks.remove(task.id);
+      _tasks[task.id] = task;
 
       notifyListeners();
 
       // Desarchiva la tarea (DB)
-      task.archived = false;
       await updateTask(task, notify: false);
 
       // Actualiza la lista de tareas (active)
@@ -302,12 +354,12 @@ class TaskProvider with ChangeNotifier {
 
       notifyListeners();
 
-      ShowMessage.taskUnarchived(context, task);
+      ShowMessage.taskUnarchived(task);
     }, 'No se ha podido desarchivar la tarea');
   }
 
-  Future<void> deleteTask(BuildContext context, Task task) {
-    return tryOrShowError(context, () async {
+  Future<void> deleteTask(Task task) {
+    return tryOrShowError(() async {
       Project? linkedProject = task.project.value;
       List<TimeEntry> timeHistory = task.timeHistory.toList();
 
@@ -315,57 +367,80 @@ class TaskProvider with ChangeNotifier {
       await pauseTimer(task);
 
       // Elimina la tarea (UI)
-      _tasks.remove(task);
-      _archivedTasks.remove(task);
+      _tasks.remove(task.id);
+      _archivedTasks.remove(task.id);
 
       notifyListeners();
 
       // Elimina la tarea (DB)
       final isar = await _isarService.db;
       await isar.writeTxn(() async {
+        // Historial de tiempo
+        await isar.timeEntries
+            .deleteAll(timeHistory.map((timeEntry) => timeEntry.id).toList());
+        // Tarea
         await isar.tasks.delete(task.id);
       });
 
-      // TODO: Elimina los TimeEntry de timeHistory ? (view isar inspector)
+      // Actualiza la lista de tareas
+      await loadTasks();
 
-      ShowMessage.taskDeleted(context, task, (deletedTask) async {
-        await restoreTask(context, deletedTask, linkedProject, timeHistory);
+      ShowMessage.taskDeleted(task, (deletedTask) async {
+        await restoreTask(deletedTask, linkedProject, timeHistory);
       });
     }, 'No se ha podido eliminar la tarea');
   }
 
   Future<void> restoreTask(
-    BuildContext context,
-    Task task,
-    Project? linkedProject,
-    List<TimeEntry> timeHistory,
+    final Task task,
+    final Project? linkedProject,
+    final List<TimeEntry> timeHistory,
   ) {
-    return tryOrShowError(context, () async {
-      // Restaurar la referencia al proyecto
+    return tryOrShowError(() async {
+      // Restaurar la tarea (DB)
+      await updateTask(task, notify: false);
+
+      // Obtener la instancia restaurada de la tarea
       final isar = await _isarService.db;
+      final restoredTask = await isar.tasks.get(task.id);
+      if (restoredTask == null) {
+        throw StateError('La tarea no se pudo restaurar');
+      }
+
+      // Restaurar la referencia al proyecto
       if (linkedProject != null) {
-        linkedProject = await isar.projects.get(linkedProject!.id);
-        if (linkedProject != null) {
-          task.project.value = linkedProject;
+        final Project? linkedProjectInstance =
+            await isar.projects.get(linkedProject.id);
+        if (linkedProjectInstance != null) {
+          restoredTask.project.value = linkedProjectInstance;
         }
       }
 
       // Restaurar las referencias de tiempo
       await isar.writeTxn(() async {
-        task.timeHistory.addAll(timeHistory);
-        await task.timeHistory.update(link: timeHistory);
+        restoredTask.timeHistory.clear();
+
+        for (TimeEntry timeEntry in timeHistory) {
+          await isar.timeEntries.put(timeEntry);
+          timeEntry.task.value = restoredTask;
+          await timeEntry.task.save();
+        }
+
+        restoredTask.timeHistory.addAll(timeHistory);
+        await restoredTask.timeHistory.update(link: timeHistory);
+
+        await isar.tasks.saveLinks(restoredTask);
       });
 
-      // Restaurar la tarea (DB)
-      await updateTask(task, notify: false);
-
       // Actualiza la lista de tareas
-      loadTasks();
+      await loadTasks();
+
+      ShowMessage.taskRestored(task);
     }, 'No se ha podido restaurar la tarea');
   }
 
-  Future<Task?> copyTask(BuildContext context, Task task) async {
-    return tryOrShowError(context, () async {
+  Future<Task?> copyTask(Task task) async {
+    return tryOrShowError(() async {
       final newTask = await createTask(
         task.title,
         task.description,
@@ -373,7 +448,7 @@ class TaskProvider with ChangeNotifier {
         task.estimatedTime,
       );
 
-      ShowMessage.taskCopied(context, newTask);
+      ShowMessage.taskCopied(newTask);
 
       return newTask;
     }, 'No se ha podido copiar la tarea');
@@ -392,10 +467,15 @@ extension IsarTasksExtension on IsarCollection<Task> {
   /// Put task (insert or update) and save links.
   ///
   /// Returns the id of the new or updated task.
-  Future<int> update(Task task) async {
+  Future<int> update(final Task task) async {
     int id = await isar.tasks.put(task);
+    await isar.tasks.saveLinks(task);
+    return id;
+  }
+
+  /// Save task links (project, timeHistory)
+  Future<void> saveLinks(final Task task) async {
     await task.project.save();
     await task.timeHistory.save();
-    return id;
   }
 }

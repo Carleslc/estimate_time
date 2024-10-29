@@ -184,8 +184,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                 );
 
                 if (confirm) {
-                  await projectProvider.deleteProject(context, widget.project);
-                  NavigationProvider.navigateToPage(context, AppPage.projects);
+                  final refreshTaskLinks = _taskProvider.loadTasks;
+                  await projectProvider.deleteProject(
+                    widget.project,
+                    onRestored: refreshTaskLinks,
+                  );
+                  await refreshTaskLinks(); // actualiza las referencias
+                  NavigationProvider.instance?.navigateToPage(AppPage.projects);
                 }
               },
             ),
@@ -363,9 +368,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                   },
                 ),
           onTap: () {
-            context
-                .read<NavigationProvider>()
-                .navigateToTaskDetails(context, task);
+            context.read<NavigationProvider>().navigateToTaskDetails(task);
           },
         );
       },

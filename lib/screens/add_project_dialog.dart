@@ -90,7 +90,7 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
             if (_formKey.currentState!.validate()) {
               _formKey.currentState!.save();
 
-              await tryOrShowError(context, () async {
+              await tryOrShowError(() async {
                 await projectProvider.createProject(_name, _selectedColor);
                 Navigator.pop(context);
               }, 'No se ha podido crear el proyecto');

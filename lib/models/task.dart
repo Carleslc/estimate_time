@@ -179,6 +179,24 @@ class Task {
     return estimatedTime == 0 ? 0.0 : ((totalTime / estimatedTime) - 1) * 100;
   }
 
+  void update(Task other) {
+    if (id != other.id)
+      throw AssertionError(
+        'Cannot update task $id from different task with id ${other.id}',
+      );
+    title = other.title;
+    description = other.description;
+    lastUpdated = other.lastUpdated;
+    isRunning = other.isRunning;
+    archived = other.archived;
+    _estimatedTimeMillis = other.estimatedTimeMillis;
+    _totalTimeMillis = other.totalTimeMillis;
+    _updateDeviation();
+    timeHistory.clear();
+    timeHistory.addAll(other.timeHistory);
+    setProject(other.project.value);
+  }
+
   @override
   String toString() {
     return 'Task(id: $id, title: $title, isRunning: $isRunning, archived: $archived)';

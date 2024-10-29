@@ -51,7 +51,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       onTap: () {
                         context
                             .read<NavigationProvider>()
-                            .navigateToProjectDetails(context, project)
+                            .navigateToProjectDetails(project)
                             .then((_) {
                           // Recarga los proyectos cuando la pantalla se vuelve a mostrar
                           context.read<ProjectProvider>().loadProjects();
@@ -63,6 +63,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           floatingActionButton: Tooltip(
             message: 'Añadir proyecto',
             child: FloatingActionButton(
+              heroTag: 'add_project_fab',
               child: Icon(Icons.library_add),
               onPressed: () => showDialog(
                 context: context,

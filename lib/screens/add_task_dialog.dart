@@ -49,7 +49,7 @@ class AddTaskDialog extends StatefulWidget {
       builder: (_) => AddTaskDialog.copy(task),
     );
     if (newTask != null) {
-      ShowMessage.taskCopied(context, newTask);
+      ShowMessage.taskCopied(newTask);
     }
   }
 }
@@ -242,7 +242,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 SizedBox(height: 10),
                 // Título
                 TextFormField(
-                  autofocus: true,
+                  autofocus: widget.title == null,
                   controller: _titleController,
                   decoration: InputDecoration(
                     labelText: _requiredTitle ? null : 'Título',
@@ -346,7 +346,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               }
               final taskProvider = context.read<TaskProvider>();
 
-              await tryOrShowError(context, () async {
+              await tryOrShowError(() async {
                 final newTask = await taskProvider.createTask(
                   _title,
                   _description,

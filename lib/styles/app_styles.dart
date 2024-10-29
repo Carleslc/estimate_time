@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../utils/message.dart';
+
 abstract final class AppStyles {
   static Color _seedColor = Colors.lightGreen;
 
-  static ColorScheme colorScheme = ColorScheme.fromSeed(seedColor: _seedColor);
+  static late ColorScheme colorScheme;
 
   // TODO: Refactor TextStyles
 
@@ -17,6 +19,10 @@ abstract final class AppStyles {
         fontSize: 16,
       ),
     );
+
+    colorScheme = ColorScheme.fromSeed(seedColor: _seedColor);
+
+    ShowMessage.initColors(colorScheme);
 
     return ThemeData(
       useMaterial3: true,

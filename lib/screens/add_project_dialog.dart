@@ -29,6 +29,7 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
           children: [
             // Nombre
             TextFormField(
+              autofocus: true,
               decoration: InputDecoration(
                 label: RequiredFieldLabel(
                   labelText: 'Nombre',

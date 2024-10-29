@@ -377,6 +377,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       builder: (_) => AlertDialog(
         title: const Text('Editar título'),
         content: TextField(
+          autofocus: true,
           controller: _controller,
           decoration: const InputDecoration(labelText: 'Título'),
         ),

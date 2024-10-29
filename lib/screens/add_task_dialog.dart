@@ -242,6 +242,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 SizedBox(height: 10),
                 // Título
                 TextFormField(
+                  autofocus: true,
                   controller: _titleController,
                   decoration: InputDecoration(
                     labelText: _requiredTitle ? null : 'Título',

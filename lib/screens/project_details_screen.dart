@@ -135,10 +135,10 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
     double percent;
     if (_isVertical) {
       // Portrait
-      percent = 1 / 3;
+      percent = 0.4;
     } else {
       // Landscape
-      percent = 0.5; // Scroll
+      percent = 0.7; // Scroll
     }
     _chartHeight = screenHeight * percent;
   }

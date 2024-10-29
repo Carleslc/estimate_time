@@ -353,7 +353,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             : const SizedBox.shrink();
 
     final chartContainer = Padding(
-      padding: const EdgeInsets.fromLTRB(10, 0, 16, 10),
+      padding: const EdgeInsets.only(left: 10, right: 16, bottom: 10),
       child: Container(
         height: _chartHeight,
         constraints: hasChartData

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -13,12 +11,13 @@ import 'screens/home_screen.dart';
 import 'services/isar_service.dart';
 import 'styles/app_styles.dart';
 import 'utils/message.dart';
+import 'utils/platform.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializa el locale para las fechas
-  Intl.defaultLocale = Platform.localeName;
+  Intl.defaultLocale = getSystemLocaleName();
   await initializeDateFormatting(Intl.defaultLocale);
 
   runApp(const EstimateTimeApp());

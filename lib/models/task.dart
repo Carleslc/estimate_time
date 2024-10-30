@@ -42,6 +42,9 @@ class Task {
     _updateDeviation();
   }
 
+  /// Fecha de creación de la tarea
+  DateTime createdAt = DateTime.now();
+
   /// Fecha de última actualización del tiempo registrado
   DateTime lastUpdated = DateTime.now();
 

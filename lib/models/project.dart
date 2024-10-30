@@ -10,6 +10,9 @@ class Project {
   /// Nombre del proyecto
   late String name;
 
+  /// Fecha de creación del proyecto
+  DateTime createdAt = DateTime.now();
+
   /// Color del proyecto en ARGB
   int get colorValue => _colorValue;
   @ignore

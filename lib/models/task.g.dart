@@ -22,33 +22,38 @@ const TaskSchema = CollectionSchema(
       name: r'archived',
       type: IsarType.bool,
     ),
-    r'description': PropertySchema(
+    r'createdAt': PropertySchema(
       id: 1,
+      name: r'createdAt',
+      type: IsarType.dateTime,
+    ),
+    r'description': PropertySchema(
+      id: 2,
       name: r'description',
       type: IsarType.string,
     ),
     r'estimatedTimeMillis': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'estimatedTimeMillis',
       type: IsarType.long,
     ),
     r'isRunning': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'isRunning',
       type: IsarType.bool,
     ),
     r'lastUpdated': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'lastUpdated',
       type: IsarType.dateTime,
     ),
     r'title': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalTimeMillis': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'totalTimeMillis',
       type: IsarType.long,
     )
@@ -98,12 +103,13 @@ void _taskSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeBool(offsets[0], object.archived);
-  writer.writeString(offsets[1], object.description);
-  writer.writeLong(offsets[2], object.estimatedTimeMillis);
-  writer.writeBool(offsets[3], object.isRunning);
-  writer.writeDateTime(offsets[4], object.lastUpdated);
-  writer.writeString(offsets[5], object.title);
-  writer.writeLong(offsets[6], object.totalTimeMillis);
+  writer.writeDateTime(offsets[1], object.createdAt);
+  writer.writeString(offsets[2], object.description);
+  writer.writeLong(offsets[3], object.estimatedTimeMillis);
+  writer.writeBool(offsets[4], object.isRunning);
+  writer.writeDateTime(offsets[5], object.lastUpdated);
+  writer.writeString(offsets[6], object.title);
+  writer.writeLong(offsets[7], object.totalTimeMillis);
 }
 
 Task _taskDeserialize(
@@ -114,13 +120,14 @@ Task _taskDeserialize(
 ) {
   final object = Task();
   object.archived = reader.readBool(offsets[0]);
-  object.description = reader.readString(offsets[1]);
-  object.estimatedTimeMillis = reader.readLongOrNull(offsets[2]);
+  object.createdAt = reader.readDateTime(offsets[1]);
+  object.description = reader.readString(offsets[2]);
+  object.estimatedTimeMillis = reader.readLongOrNull(offsets[3]);
   object.id = id;
-  object.isRunning = reader.readBool(offsets[3]);
-  object.lastUpdated = reader.readDateTime(offsets[4]);
-  object.title = reader.readString(offsets[5]);
-  object.totalTimeMillis = reader.readLong(offsets[6]);
+  object.isRunning = reader.readBool(offsets[4]);
+  object.lastUpdated = reader.readDateTime(offsets[5]);
+  object.title = reader.readString(offsets[6]);
+  object.totalTimeMillis = reader.readLong(offsets[7]);
   return object;
 }
 
@@ -134,16 +141,18 @@ P _taskDeserializeProp<P>(
     case 0:
       return (reader.readBool(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
-    case 2:
-      return (reader.readLongOrNull(offset)) as P;
-    case 3:
-      return (reader.readBool(offset)) as P;
-    case 4:
       return (reader.readDateTime(offset)) as P;
-    case 5:
+    case 2:
       return (reader.readString(offset)) as P;
+    case 3:
+      return (reader.readLongOrNull(offset)) as P;
+    case 4:
+      return (reader.readBool(offset)) as P;
+    case 5:
+      return (reader.readDateTime(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -246,6 +255,59 @@ extension TaskQueryFilter on QueryBuilder<Task, Task, QFilterCondition> {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'archived',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterFilterCondition> createdAtEqualTo(
+      DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterFilterCondition> createdAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterFilterCondition> createdAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'createdAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterFilterCondition> createdAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'createdAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -833,6 +895,18 @@ extension TaskQuerySortBy on QueryBuilder<Task, Task, QSortBy> {
     });
   }
 
+  QueryBuilder<Task, Task, QAfterSortBy> sortByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterSortBy> sortByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
+    });
+  }
+
   QueryBuilder<Task, Task, QAfterSortBy> sortByDescription() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'description', Sort.asc);
@@ -916,6 +990,18 @@ extension TaskQuerySortThenBy on QueryBuilder<Task, Task, QSortThenBy> {
   QueryBuilder<Task, Task, QAfterSortBy> thenByArchivedDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'archived', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterSortBy> thenByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Task, Task, QAfterSortBy> thenByCreatedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'createdAt', Sort.desc);
     });
   }
 
@@ -1011,6 +1097,12 @@ extension TaskQueryWhereDistinct on QueryBuilder<Task, Task, QDistinct> {
     });
   }
 
+  QueryBuilder<Task, Task, QDistinct> distinctByCreatedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'createdAt');
+    });
+  }
+
   QueryBuilder<Task, Task, QDistinct> distinctByDescription(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1060,6 +1152,12 @@ extension TaskQueryProperty on QueryBuilder<Task, Task, QQueryProperty> {
   QueryBuilder<Task, bool, QQueryOperations> archivedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'archived');
+    });
+  }
+
+  QueryBuilder<Task, DateTime, QQueryOperations> createdAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'createdAt');
     });
   }
 

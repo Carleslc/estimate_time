@@ -27,9 +27,39 @@ class TaskProvider with ChangeNotifier {
   final Map<Id, ChartData> _taskChartData = {};
   final Map<Id, StreamController<ChartData>> _taskChartControllers = {};
 
-  List<Task> get tasks => UnmodifiableListView(_tasks.values);
-  List<Task> get archivedTasks => UnmodifiableListView(_archivedTasks.values);
-  List<Task> get allTasks => [..._tasks.values, ..._archivedTasks.values];
+  // Cache (tasks)
+  List<Task> _sortedTasks = [];
+  bool _sortedTasksValid = false;
+
+  /// Tareas activas
+  List<Task> get tasks {
+    if (!_sortedTasksValid) {
+      _sortedTasks = UnmodifiableListView(
+        _tasks.values.toList()..sort((a, b) => a.id.compareTo(b.id)),
+      );
+      _sortedTasksValid = true;
+    }
+    return _sortedTasks;
+  }
+
+  // Cache (archivedTasks)
+  List<Task> _sortedArchivedTasks = [];
+  bool _sortedArchivedTasksValid = false;
+
+  /// Tareas archivadas
+  List<Task> get archivedTasks {
+    if (!_sortedArchivedTasksValid) {
+      _sortedArchivedTasks = UnmodifiableListView(
+        _archivedTasks.values.toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)), // desc
+      );
+      _sortedArchivedTasksValid = true;
+    }
+    return _sortedArchivedTasks;
+  }
+
+  /// Todas las tareas
+  List<Task> get allTasks => [...tasks, ...archivedTasks];
 
   TaskProvider(IsarService isarService) : _isarService = isarService {
     _loadTasks();
@@ -65,6 +95,7 @@ class TaskProvider with ChangeNotifier {
     final dbActiveTasks =
         await isar.tasks.filter().archivedEqualTo(false).findAll();
     await _updateTasksList(_tasks, dbActiveTasks);
+    _sortedTasksValid = false;
   }
 
   Future<void> loadActiveTasks() async {
@@ -77,6 +108,7 @@ class TaskProvider with ChangeNotifier {
     final dbArchivedTasks =
         await isar.tasks.filter().archivedEqualTo(true).findAll();
     await _updateTasksList(_archivedTasks, dbArchivedTasks);
+    _sortedArchivedTasksValid = false;
   }
 
   Future<void> loadArchivedTasks() async {
@@ -86,7 +118,7 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> _updateTasksList(
     Map<Id, Task> tasks,
-    final List<Task> updatedTasks,
+    final Iterable<Task> updatedTasks,
   ) async {
     final Set<Id> existingIds = {};
 
@@ -138,8 +170,10 @@ class TaskProvider with ChangeNotifier {
     // Añadir tarea (UI)
     if (task.archived) {
       _archivedTasks[task.id] = task;
+      _sortedArchivedTasksValid = false;
     } else {
       _tasks[task.id] = task;
+      _sortedTasksValid = false;
     }
 
     log(enabled: true, 'Add Task: $task');
@@ -430,6 +464,10 @@ class TaskProvider with ChangeNotifier {
       _tasks.remove(task.id);
       _archivedTasks[task.id] = task;
 
+      // Invalida la caché
+      _sortedTasksValid = false;
+      _sortedArchivedTasksValid = false;
+
       notifyListeners();
 
       // Archiva la tarea (DB)
@@ -451,6 +489,10 @@ class TaskProvider with ChangeNotifier {
 
       _archivedTasks.remove(task.id);
       _tasks[task.id] = task;
+
+      // Invalida la caché
+      _sortedTasksValid = false;
+      _sortedArchivedTasksValid = false;
 
       notifyListeners();
 
@@ -475,8 +517,12 @@ class TaskProvider with ChangeNotifier {
       await pauseTimer(task);
 
       // Elimina la tarea (UI)
-      _tasks.remove(task.id);
-      _archivedTasks.remove(task.id);
+      final removedActive = _tasks.remove(task.id);
+      final removedArchived = _archivedTasks.remove(task.id);
+
+      // Invalida la caché
+      _sortedTasksValid = removedActive == null;
+      _sortedArchivedTasksValid = removedArchived == null;
 
       notifyListeners();
 

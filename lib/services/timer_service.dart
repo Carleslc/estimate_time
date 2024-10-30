@@ -24,14 +24,23 @@ class TimerService {
     if (isRunning(id)) return;
 
     // Inicia el cronómetro
-    _atStartOfNextSecond(id, syncTime ?? tickDuration, () {
-      // Primer tick al siguiente segundo en punto de [syncTime]
+    final startTimeCallback = () {
+      // Primer tick
       (onFirstTick ?? onTick).call();
       // Ticks en intervalos de [tickDuration]
-      _timers[id] = Timer.periodic(tickDuration, (timer) {
-        onTick();
-      });
-    });
+      if (syncTime == null || isRunning(id)) {
+        _timers[id] = Timer.periodic(tickDuration, (timer) {
+          onTick();
+        });
+      }
+    };
+    if (syncTime != null) {
+      // Primer tick al siguiente segundo en punto de [syncTime]
+      _atStartOfNextSecond(id, syncTime, startTimeCallback);
+    } else {
+      // Primer tick inmediatamente
+      startTimeCallback();
+    }
   }
 
   // Pausa el cronómetro
@@ -62,7 +71,7 @@ class TimerService {
       microseconds: Duration.microsecondsPerSecond - fractionMicroseconds,
     );
     log(
-        enabled: true,
+        enabled: false,
         'Next second in: ${remainingTimeToNextSecond.totalSeconds.toStringAsFixed(3)} s');
     _timers[id] = Timer(
       remainingTimeToNextSecond,

@@ -1,12 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../models/chart_data.dart';
 import '../utils/date.dart';
 import '../utils/duration.dart';
 
 class TimeChart extends StatelessWidget {
-  final List<({int dayIndex, double minutes})> chartData;
-  final List<({String label, DateTime value})> chartLabels;
+  final List<ChartPoint> chartData;
+  final List<ChartLabel> chartLabels;
+
   final String axisX;
   late final double _maxY;
 

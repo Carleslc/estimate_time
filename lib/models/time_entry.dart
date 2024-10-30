@@ -6,7 +6,7 @@ import 'task.dart';
 part 'time_entry.g.dart';
 
 @Collection(accessor: 'timeEntries')
-class TimeEntry {
+class TimeEntry implements Comparable<TimeEntry> {
   Id id = Isar.autoIncrement;
 
   @Backlink(to: 'timeHistory')
@@ -28,6 +28,9 @@ class TimeEntry {
 
   @ignore
   DateTime get day => date.toDate();
+
+  @override
+  int compareTo(TimeEntry other) => date.compareTo(other.date);
 
   @override
   String toString() => 'TimeEntry(id: $id, date: $date, duration: $duration)';

@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 
+import '../models/chart_data.dart';
 import '../models/project.dart';
 import '../models/task.dart';
 import '../models/time_entry.dart';
@@ -18,8 +19,13 @@ class TaskProvider with ChangeNotifier {
   final IsarService _isarService;
   final _timerService = TimerService(tickDuration: const Duration(seconds: 1));
 
+  // Tareas activas y archivadas por ID
   final Map<Id, Task> _tasks = {};
   final Map<Id, Task> _archivedTasks = {};
+
+  // Gráfico por ID de tarea
+  final Map<Id, ChartData> _taskChartData = {};
+  final Map<Id, StreamController<ChartData>> _taskChartControllers = {};
 
   List<Task> get tasks => UnmodifiableListView(_tasks.values);
   List<Task> get archivedTasks => UnmodifiableListView(_archivedTasks.values);
@@ -58,7 +64,7 @@ class TaskProvider with ChangeNotifier {
     final isar = await _isarService.db;
     final dbActiveTasks =
         await isar.tasks.filter().archivedEqualTo(false).findAll();
-    _updateTasksList(_tasks, dbActiveTasks);
+    await _updateTasksList(_tasks, dbActiveTasks);
   }
 
   Future<void> loadActiveTasks() async {
@@ -88,15 +94,17 @@ class TaskProvider with ChangeNotifier {
     for (Task task in updatedTasks) {
       existingIds.add(task.id);
 
-      if (_tasks.containsKey(task.id)) {
+      if (tasks.containsKey(task.id)) {
         Task existingTask = tasks[task.id]!;
         existingTask.update(task);
       } else {
         tasks[task.id] = task;
       }
 
+      // Inicializa el historial de tiempo y el gráfico
       await task.timeHistory.load();
       setTodayTime(task);
+      updateTaskChartData(task);
     }
 
     // Eliminar tareas que ya no existen
@@ -118,6 +126,8 @@ class TaskProvider with ChangeNotifier {
 
     await _addTask(task);
 
+    notifyListeners();
+
     return task;
   }
 
@@ -132,7 +142,7 @@ class TaskProvider with ChangeNotifier {
       _tasks[task.id] = task;
     }
 
-    log('Add Task: $task');
+    log(enabled: true, 'Add Task: $task');
   }
 
   Future<void> updateTask(Task task, {bool notify = true}) async {
@@ -217,6 +227,8 @@ class TaskProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Task? getTask(Id taskId) => _tasks[taskId] ?? _archivedTasks[taskId];
+
   Task _getActiveTask(Id taskId) {
     final Task? task = _tasks[taskId]; // obtener de las tareas activas
 
@@ -287,9 +299,13 @@ class TaskProvider with ChangeNotifier {
       // Añade el TimeEntry
       if (add) {
         task.timeHistory.add(timeEntry);
-        log('New: ${task.timeHistory.lastOrNull}, $task');
+        log(enabled: true, 'New: ${task.timeHistory.lastOrNull}, $task');
+        // Añade al gráfico
+        _addTimeEntryChart(task, timeEntry);
       } else {
-        log(enabled: true, 'Update: $timeEntry');
+        log(enabled: false, 'Update: $timeEntry');
+        // Actualizar el gráfico
+        _updateLastChartPoint(task, timeEntry);
       }
 
       // Actualizar historial
@@ -298,6 +314,98 @@ class TaskProvider with ChangeNotifier {
       // Actualizar tarea
       await isar.tasks.put(task);
     });
+  }
+
+  /// Añade un TimeEntry al gráfico de una tarea
+  void _addTimeEntryChart(Task task, TimeEntry timeEntry) {
+    // Filtrar la última semana
+    final now = DateTime.now();
+    if (timeEntry.day.isAfter(now.subtract(Duration(days: 7)))) {
+      final chartData = _taskChartData[task.id];
+      if (chartData != null) {
+        chartData.points.add(ChartPoint(
+          dayIndex: chartData.points.length,
+          minutes: timeEntry.duration.totalMinutes,
+        ));
+        chartData.labels.add(ChartLabel(
+          label: '${timeEntry.date.day}/${timeEntry.date.month}',
+          value: timeEntry.day,
+        ));
+        // Emitir los nuevos datos
+        _taskChartControllers[task.id]?.add(chartData);
+      }
+    }
+  }
+
+  /// Actualiza solo el último punto del gráfico de una tarea
+  void _updateLastChartPoint(Task task, TimeEntry timeEntry) {
+    final chartData = _taskChartData[task.id];
+    if (chartData != null && chartData.points.isNotEmpty) {
+      final lastPoint = chartData.points.last;
+      lastPoint.minutes = timeEntry.duration.totalMinutes;
+      // Emitir los nuevos datos
+      _taskChartControllers[task.id]?.add(chartData);
+    }
+  }
+
+  /// Actualiza los datos del gráfico de una tarea
+  void updateTaskChartData(final Task task) {
+    // Filtrar la última semana
+    final now = DateTime.now();
+    final lastWeek = now.subtract(Duration(days: 7));
+    final recentEntries = task.timeHistory
+        .toList()
+        .where((timeEntry) => timeEntry.day.isAfter(lastWeek))
+        .toList();
+
+    // Ordenar por fecha
+    recentEntries.sort();
+
+    // Preparar etiquetas y datos
+    final labels = recentEntries.map((e) {
+      return ChartLabel(label: '${e.date.day}/${e.date.month}', value: e.day);
+    }).toList();
+
+    final points =
+        recentEntries.asMap().entries.map((MapEntry<int, TimeEntry> e) {
+      return ChartPoint(
+        dayIndex: e.key,
+        minutes: e.value.duration.totalMinutes,
+      );
+    }).toList();
+
+    _taskChartData[task.id] = ChartData(
+      points: points,
+      labels: labels,
+    );
+
+    // Crear el StreamController si es necesario
+    if (!_taskChartControllers.containsKey(task.id)) {
+      _taskChartControllers[task.id] = StreamController<ChartData>.broadcast();
+    }
+    _taskChartControllers[task.id]!.add(_taskChartData[task.id]!);
+
+    log(
+      enabled: false,
+      '${task.title} updateTaskChartData ${DateTime.now()}',
+    );
+  }
+
+  /// Obtén los datos del gráfico de una tarea
+  ChartData? getChartDataForTask(Id taskId) {
+    return _taskChartData[taskId];
+  }
+
+  /// Stream de los datos del gráfico
+  Stream<ChartData> getChartDataStream(Id taskId) {
+    if (!_taskChartControllers.containsKey(taskId)) {
+      _taskChartControllers[taskId] = StreamController<ChartData>.broadcast();
+      // Emitir los datos actuales
+      if (_taskChartData.containsKey(taskId)) {
+        _taskChartControllers[taskId]!.add(_taskChartData[taskId]!);
+      }
+    }
+    return _taskChartControllers[taskId]!.stream;
   }
 
   void setTodayTime(Task task) {
@@ -454,11 +562,11 @@ class TaskProvider with ChangeNotifier {
     }, 'No se ha podido copiar la tarea');
   }
 
-  // Detener todos los cronómetros al destruir el provider
+  /// Detener todos los cronómetros y cerrar los streams al destruir el provider
   @override
   void dispose() {
-    log('TaskProvider dispose()');
     _timerService.stopAll();
+    _taskChartControllers.forEach((taskId, controller) => controller.close());
     super.dispose();
   }
 }

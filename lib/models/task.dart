@@ -160,7 +160,7 @@ class Task {
     _updateDeviation();
 
     log(
-      enabled: true,
+      enabled: false,
       'Elapsed: ${(elapsed.inMilliseconds / Duration.millisecondsPerSecond).toStringAsFixed(3)}'
       '  Now: ${now.formatTime()}'
       '  From: ${lastUpdated.formatTime()}'

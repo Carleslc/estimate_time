@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 
+import '../models/chart_data.dart';
 import '../models/project.dart';
 import '../models/task.dart';
+import '../models/time_entry.dart';
 import '../services/isar_service.dart';
+import '../utils/duration.dart';
 import '../utils/message.dart';
 import 'task_provider.dart';
 
@@ -18,6 +22,10 @@ class ProjectProvider with ChangeNotifier {
 
   // Mapa para gestionar proyectos eliminados y sus tareas vinculadas
   final Map<int, List<Task>> _deletedProjectTasks = {};
+
+  // Gráfico por ID de proyecto
+  final Map<Id, ChartData> _projectChartData = {};
+  final Map<Id, StreamController<ChartData>> _projectChartControllers = {};
 
   ProjectProvider(IsarService isarService) : _isarService = isarService {
     loadProjects();
@@ -83,6 +91,9 @@ class ProjectProvider with ChangeNotifier {
       // Actualiza la lista de proyectos
       await loadProjects();
 
+      // Actualizar datos del gráfico del proyecto
+      updateProjectChartData(project);
+
       ShowMessage.projectDeleted(
         project,
         (deletedProject) async {
@@ -121,7 +132,10 @@ class ProjectProvider with ChangeNotifier {
           }
         });
 
-        // Tareas restauradas
+        // Actualizar datos del gráfico del proyecto
+        updateProjectChartData(restoredProject);
+
+        // Liberar la memoria de tareas vinculadas
         _freeProject(project);
       }
 
@@ -136,5 +150,85 @@ class ProjectProvider with ChangeNotifier {
   void _freeProject(Project project) {
     _deletedProjectTasks[project.id]?.clear();
     _deletedProjectTasks.remove(project.id);
+  }
+
+  /// Actualiza los datos del gráfico del proyecto
+  Future<void> updateProjectChartData(Project project) async {
+    final isar = await _isarService.db;
+    // Obtener todas las tareas del proyecto
+    final List<Task> projectTasks = await isar.tasks
+        .filter()
+        .project((projectQuery) => projectQuery.idEqualTo(project.id))
+        .findAll();
+
+    // Agregar todos los TimeEntries de las tareas del proyecto en la última semana
+    Map<DateTime, double> dailyMinutesMap = {};
+
+    final now = DateTime.now();
+    final lastWeek = now.subtract(Duration(days: 7));
+
+    for (Task task in projectTasks) {
+      await task.timeHistory.load();
+      for (TimeEntry entry in task.timeHistory) {
+        if (entry.day.isAfter(lastWeek)) {
+          dailyMinutesMap.update(
+            entry.day,
+            (value) => value + entry.duration.totalMinutes,
+            ifAbsent: () => entry.duration.totalMinutes,
+          );
+        }
+      }
+    }
+
+    // Ordenar por fecha
+    final sortedEntries = dailyMinutesMap.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    // Preparar etiquetas y datos
+    final labels = sortedEntries.map((e) {
+      return ChartLabel(label: '${e.key.day}/${e.key.month}', value: e.key);
+    }).toList();
+
+    final points = sortedEntries.asMap().entries.map((e) {
+      return ChartPoint(dayIndex: e.key, minutes: e.value.value);
+    }).toList();
+
+    _projectChartData[project.id] = ChartData(
+      points: points,
+      labels: labels,
+    );
+
+    // Crear el StreamController si es necesario
+    if (!_projectChartControllers.containsKey(project.id)) {
+      _projectChartControllers[project.id] =
+          StreamController<ChartData>.broadcast();
+    }
+    _projectChartControllers[project.id]!.add(_projectChartData[project.id]!);
+  }
+
+  // Obtén los datos del gráfico de un proyecto
+  ChartData? getChartDataForProject(Id projectId) {
+    return _projectChartData[projectId];
+  }
+
+  // Stream para los datos del gráfico del proyecto
+  Stream<ChartData> getChartDataStream(Id projectId) {
+    if (!_projectChartControllers.containsKey(projectId)) {
+      _projectChartControllers[projectId] =
+          StreamController<ChartData>.broadcast();
+      // Emitir los datos actuales
+      if (_projectChartData.containsKey(projectId)) {
+        _projectChartControllers[projectId]!.add(_projectChartData[projectId]!);
+      }
+    }
+    return _projectChartControllers[projectId]!.stream;
+  }
+
+  // Cerrar los streams
+  @override
+  void dispose() {
+    _projectChartControllers
+        .forEach((projectId, controller) => controller.close());
+    super.dispose();
   }
 }

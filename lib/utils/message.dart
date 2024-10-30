@@ -109,6 +109,7 @@ abstract class ShowMessage {
     VoidCallback? onAction,
     Color? backgroundColor,
     Color? foregroundColor,
+    double? height = 30,
   }) {
     hideCurrentSnackBar(); // Cerrar cualquier SnackBar existente
 
@@ -116,7 +117,7 @@ abstract class ShowMessage {
 
     final snackbar = SnackBar(
       content: Container(
-        height: 30,
+        height: height,
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(message, style: TextStyle(color: foregroundColor)),

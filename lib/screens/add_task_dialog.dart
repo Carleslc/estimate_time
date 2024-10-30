@@ -11,6 +11,7 @@ import '../providers/task_provider.dart';
 import '../utils/message.dart';
 import '../utils/strings.dart';
 import '../widgets/required_field_label.dart';
+import '../widgets/time_picker.dart';
 
 class AddTaskDialog extends StatefulWidget {
   final int? projectId;
@@ -113,34 +114,23 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     });
   }
 
-  Future<void> _showTimePicker() async {
-    // TODO: Add Settings page with preferred time picker selector
-    if (Theme.of(context).platform == TargetPlatform.iOS) {
-      _showTimePickerCupertino();
-    } else {
-      _showTimePickerMaterial();
-    }
+  void _showTimePickerEstimatedTime() {
+    showTimePickerDialog(
+      context,
+      material: _showTimePickerMaterial,
+      ios: _showTimePickerCupertino,
+    );
   }
 
   Future<void> _showTimePickerMaterial() async {
-    final pickedTime = await showTimePicker(
+    final pickedTime = await showTimePickerMaterial(
       context: context,
+      helpText: 'Tiempo estimado',
+      initialEntryMode: TimePickerEntryMode.dial,
       initialTime: TimeOfDay(
         hour: _estimatedHoursController.text.parseIntOrZero(),
         minute: _estimatedMinutesController.text.parseIntOrZero(),
       ),
-      initialEntryMode: TimePickerEntryMode.dial,
-      orientation: MediaQuery.orientationOf(context),
-      hourLabelText: 'Horas',
-      minuteLabelText: 'Minutos',
-      helpText: 'Tiempo estimado',
-      confirmText: 'Aceptar'.toUpperCase(),
-      builder: (BuildContext context, Widget? child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
-        );
-      },
     );
 
     if (pickedTime != null) {
@@ -154,29 +144,21 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   }
 
   void _showTimePickerCupertino() {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (_) => Container(
-        height: 250,
-        color: Colors.white,
-        child: CupertinoTimerPicker(
-          mode: CupertinoTimerPickerMode.hm,
-          minuteInterval: 1,
-          initialTimerDuration: Duration(
-            hours: _estimatedHoursController.text.parseIntOrZero(),
-            minutes: _estimatedMinutesController.text.parseIntOrZero(),
-          ),
-          onTimerDurationChanged: (Duration pickDuration) {
-            setState(() {
-              _estimatedHours = pickDuration.inHours;
-              _estimatedHoursController.text = _estimatedHours.toString();
-              _estimatedMinutes = pickDuration.inMinutes;
-              _estimatedMinutesController.text = _estimatedMinutes.toString();
-            });
-          },
+    showTimePickerCupertino(
+        context: context,
+        mode: CupertinoTimerPickerMode.hm,
+        initialTimerDuration: Duration(
+          hours: _estimatedHoursController.text.parseIntOrZero(),
+          minutes: _estimatedMinutesController.text.parseIntOrZero(),
         ),
-      ),
-    );
+        onTimerDurationChanged: (Duration pickDuration) {
+          setState(() {
+            _estimatedHours = pickDuration.inHours;
+            _estimatedHoursController.text = _estimatedHours.toString();
+            _estimatedMinutes = pickDuration.inMinutes;
+            _estimatedMinutesController.text = _estimatedMinutes.toString();
+          });
+        });
   }
 
   void _requiredTitleUpdate() {
@@ -311,7 +293,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     ),
                     IconButton.filledTonal(
                       icon: const Icon(Icons.access_time),
-                      onPressed: () => _showTimePicker(),
+                      onPressed: _showTimePickerEstimatedTime,
                     ),
                   ],
                 ),

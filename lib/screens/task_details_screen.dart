@@ -8,10 +8,12 @@ import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/date.dart';
 import '../utils/duration.dart';
+import '../utils/message.dart';
 import '../utils/strings.dart';
 import '../widgets/label_value.dart';
 import '../widgets/project_tag.dart';
 import '../widgets/time_chart.dart';
+import '../widgets/time_picker.dart';
 import '../widgets/timer_button.dart';
 
 class TaskDetailsScreen extends StatefulWidget {
@@ -226,10 +228,13 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                             value: task.totalTime.formatOptionalSeconds(),
                           ),
                         if (task.todayTimeMillis != null)
-                          LabelValue(
-                            label: 'Hoy',
-                            value: task.todayTime!.format(),
-                            separator: ':   ',
+                          GestureDetector(
+                            onTap: () => _editTodayTime(context, task),
+                            child: LabelValue(
+                              label: 'Hoy',
+                              value: (task.todayTime ?? Duration.zero).format(),
+                              separator: ':   ',
+                            ),
                           ),
                         if (task.archived)
                           Padding(
@@ -279,18 +284,22 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                           ),
                         // Duración estimada
                         if (task.estimatedTimeMillis != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: LabelValue(
-                              label: 'Estimación',
-                              value: task.estimatedTime!.format(),
+                          GestureDetector(
+                            onTap: () => _editEstimatedTime(context, task),
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: LabelValue(
+                                label: 'Estimación',
+                                value: (task.estimatedTime ?? Duration.zero)
+                                    .format(),
+                              ),
                             ),
                           ),
                         // Estadísticas
                         if (task.estimatedTimeMillis != null &&
                             task.estimatedTimeMillis! > 0)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 20),
+                            padding: const EdgeInsets.only(bottom: 30),
                             child: LabelValue(
                               label: task.progressEstimation <= 100
                                   ? 'Progreso estimado'
@@ -371,6 +380,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               final newTitle = _controller.text.trim();
 
               if (newTitle.isNotEmpty) {
+                _allowRebuild();
                 task.title = newTitle;
                 _taskProvider.updateTask(task);
                 Navigator.pop(context); // Cerrar Dialog
@@ -406,6 +416,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               final newDescription = _controller.text.trim();
 
               if (newDescription.isNotEmpty) {
+                _allowRebuild();
                 task.description = newDescription;
                 _taskProvider.updateTask(task);
                 Navigator.pop(context); // Cerrar Dialog
@@ -414,6 +425,110 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _editTodayTime(BuildContext context, Task task) {
+    if (task.isRunning) {
+      ShowMessage.show(
+        'Si quieres modificar la duración, primero debes pausar la tarea.',
+        height: null, // auto
+      );
+      return;
+    }
+
+    final Duration todayTime = task.todayTime ?? Duration.zero;
+
+    final TimeOfDay initialTime = TimeOfDay(
+      hour: todayTime.inHours,
+      minute: todayTime.inMinutes.remainder(Duration.minutesPerHour),
+    );
+
+    void updateTodayTime(Duration pickDuration) async {
+      if (pickDuration.inMinutes == todayTime.inMinutes) {
+        pickDuration = todayTime;
+      }
+      _allowRebuild();
+      await _taskProvider.setTodayTimeDuration(task, pickDuration);
+    }
+
+    showTimePickerDialog(
+      context,
+      material: () async {
+        final pickTime = await showTimePickerMaterial(
+          context: context,
+          initialTime: initialTime,
+          initialEntryMode: TimePickerEntryMode.input,
+          helpText: 'Tiempo registrado hoy',
+        );
+
+        if (pickTime != null) {
+          updateTodayTime(
+            Duration(
+              hours: pickTime.hour,
+              minutes: pickTime.minute,
+            ),
+          );
+        }
+      },
+      ios: () async {
+        showTimePickerCupertino(
+          context: context,
+          initialTimerDuration: Duration(
+            hours: initialTime.hour,
+            minutes: initialTime.minute,
+          ),
+          onTimerDurationChanged: updateTodayTime,
+        );
+      },
+    );
+  }
+
+  void _editEstimatedTime(BuildContext context, Task task) {
+    final Duration estimatedTime = task.estimatedTime ?? Duration.zero;
+
+    final TimeOfDay initialTime = TimeOfDay(
+      hour: estimatedTime.inHours,
+      minute: estimatedTime.inMinutes.remainder(Duration.minutesPerHour),
+    );
+
+    void updateEstimatedTime(final Duration pickDuration) async {
+      if (pickDuration.inMinutes != estimatedTime.inMinutes) {
+        task.estimatedTime = pickDuration;
+        _allowRebuild();
+        await _taskProvider.updateTask(task);
+      }
+    }
+
+    showTimePickerDialog(
+      context,
+      material: () async {
+        final pickTime = await showTimePickerMaterial(
+          context: context,
+          initialTime: initialTime,
+          initialEntryMode: TimePickerEntryMode.input,
+          helpText: 'Tiempo estimado',
+        );
+
+        if (pickTime != null) {
+          updateEstimatedTime(
+            Duration(
+              hours: pickTime.hour,
+              minutes: pickTime.minute,
+            ),
+          );
+        }
+      },
+      ios: () async {
+        showTimePickerCupertino(
+          context: context,
+          initialTimerDuration: Duration(
+            hours: initialTime.hour,
+            minutes: initialTime.minute,
+          ),
+          onTimerDurationChanged: updateEstimatedTime,
+        );
+      },
     );
   }
 }

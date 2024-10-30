@@ -319,6 +319,33 @@ class TaskProvider with ChangeNotifier {
     await _setTimeEntry(task, timeEntry, add: isNew);
   }
 
+  Future<void> setTodayTimeDuration(Task task, Duration duration) async {
+    await task.timeHistory.load();
+
+    TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
+
+    final now = DateTime.now();
+
+    bool isToday = timeEntry != null && timeEntry.date.isSameDay(now);
+
+    if (isToday) {
+      final int elapsedMillis = duration.inMilliseconds;
+
+      // Actualizar tiempo
+      task.totalTimeMillis += elapsedMillis - timeEntry.milliseconds;
+      task.lastUpdated = now;
+
+      // Actualizar todayTime
+      timeEntry.milliseconds = elapsedMillis;
+      task.todayTimeEntry = timeEntry;
+
+      // Actualizar el TimeEntry (DB)
+      await _setTimeEntry(task, timeEntry);
+
+      notifyListeners();
+    }
+  }
+
   Future<void> _setTimeEntry(
     Task task,
     TimeEntry timeEntry, {
@@ -355,7 +382,7 @@ class TaskProvider with ChangeNotifier {
     // Filtrar la última semana
     final now = DateTime.now();
     if (timeEntry.day.isAfter(now.subtract(Duration(days: 7)))) {
-      final chartData = _taskChartData[task.id];
+      final chartData = getChartDataForTask(task.id);
       if (chartData != null) {
         chartData.points.add(ChartPoint(
           dayIndex: chartData.points.length,
@@ -366,19 +393,19 @@ class TaskProvider with ChangeNotifier {
           value: timeEntry.day,
         ));
         // Emitir los nuevos datos
-        _taskChartControllers[task.id]?.add(chartData);
+        _emitChartData(task.id);
       }
     }
   }
 
   /// Actualiza solo el último punto del gráfico de una tarea
   void _updateLastChartPoint(Task task, TimeEntry timeEntry) {
-    final chartData = _taskChartData[task.id];
+    final chartData = getChartDataForTask(task.id);
     if (chartData != null && chartData.points.isNotEmpty) {
       final lastPoint = chartData.points.last;
       lastPoint.minutes = timeEntry.duration.totalMinutes;
       // Emitir los nuevos datos
-      _taskChartControllers[task.id]?.add(chartData);
+      _emitChartData(task.id);
     }
   }
 
@@ -408,16 +435,12 @@ class TaskProvider with ChangeNotifier {
       );
     }).toList();
 
+    // Emitir datos del gráfico
     _taskChartData[task.id] = ChartData(
       points: points,
       labels: labels,
     );
-
-    // Crear el StreamController si es necesario
-    if (!_taskChartControllers.containsKey(task.id)) {
-      _taskChartControllers[task.id] = StreamController<ChartData>.broadcast();
-    }
-    _taskChartControllers[task.id]!.add(_taskChartData[task.id]!);
+    _emitChartData(task.id);
 
     log(
       enabled: false,
@@ -433,13 +456,20 @@ class TaskProvider with ChangeNotifier {
   /// Stream de los datos del gráfico
   Stream<ChartData> getChartDataStream(Id taskId) {
     if (!_taskChartControllers.containsKey(taskId)) {
-      _taskChartControllers[taskId] = StreamController<ChartData>.broadcast();
-      // Emitir los datos actuales
-      if (_taskChartData.containsKey(taskId)) {
-        _taskChartControllers[taskId]!.add(_taskChartData[taskId]!);
-      }
+      _emitChartData(taskId);
     }
     return _taskChartControllers[taskId]!.stream;
+  }
+
+  void _emitChartData(Id taskId) {
+    // Crear el StreamController si es necesario
+    if (!_taskChartControllers.containsKey(taskId)) {
+      _taskChartControllers[taskId] = StreamController<ChartData>.broadcast();
+    }
+    // Emitir los datos actuales
+    if (_taskChartData.containsKey(taskId)) {
+      _taskChartControllers[taskId]!.add(_taskChartData[taskId]!);
+    }
   }
 
   void setTodayTime(Task task) {

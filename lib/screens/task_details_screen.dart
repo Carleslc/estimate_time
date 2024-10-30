@@ -223,7 +223,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                         if (task.totalTimeMillis > 0)
                           LabelValue(
                             label: 'Total',
-                            value: task.totalTime.format(),
+                            value: task.totalTime.formatOptionalSeconds(),
                           ),
                         if (task.todayTimeMillis != null)
                           LabelValue(

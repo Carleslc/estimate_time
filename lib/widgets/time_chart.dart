@@ -68,7 +68,7 @@ class TimeChart extends StatelessWidget {
               double minutes = rod.toY;
               double milliseconds = minutes * Duration.millisecondsPerMinute;
               Duration duration = Duration(milliseconds: milliseconds.toInt());
-              String formattedValue = duration.format(withSeconds: true);
+              String formattedValue = duration.formatOptionalSeconds();
 
               return BarTooltipItem(
                 '$dayLabel\n', // Fecha

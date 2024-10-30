@@ -45,6 +45,8 @@ extension DurationFormat on Duration {
     return formatted.trim();
   }
 
+  String formatOptionalSeconds() => format(withSeconds: inHours < 1);
+
   double get totalSeconds => inMicroseconds / Duration.microsecondsPerSecond;
 
   double get totalMinutes => inMicroseconds / Duration.microsecondsPerMinute;

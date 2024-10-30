@@ -85,7 +85,7 @@ class _ActiveTasksScreenState extends State<ActiveTasksScreen> {
                       // Tiempo
                       subtitle: Text(
                         task.totalTime.formatTime(),
-                        style: TextStyle(fontSize: 20),
+                        style: const TextStyle(fontSize: 20),
                       ),
                       // Play / Pause
                       trailing: TimerButton(

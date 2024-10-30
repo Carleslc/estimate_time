@@ -243,7 +243,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                                 label: 'Tiempo total',
                                 value: ' ' +
                                     Duration(milliseconds: _totalMilliseconds)
-                                        .format(),
+                                        .formatOptionalSeconds(),
                               ),
                               // Tiempo medio
                               if (_projectTasks.length > 1 &&
@@ -254,7 +254,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                                     label: 'Tiempo medio',
                                     value:
                                         Duration(milliseconds: _avgMilliseconds)
-                                            .format(withSeconds: true),
+                                            .formatOptionalSeconds(),
                                   ),
                                 ),
                               if (_totalEstimatedMillis > 0)

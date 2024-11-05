@@ -9,7 +9,7 @@ void showTimePickerDialog(
   required Function ios,
 }) {
   // TODO: Add Settings page with preferred time picker selector
-  if (context.platform == TargetPlatform.iOS) {
+  if (isIOS) {
     ios();
   } else {
     material();

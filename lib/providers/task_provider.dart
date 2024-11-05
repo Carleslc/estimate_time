@@ -195,8 +195,8 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> _resumeTimer(Id taskId) async {
-    // Actualizar tiempo
-    await _updateTime(taskId);
+    // Actualizar tiempo y distribuir los días
+    await _updateTimeDays(taskId);
 
     // Inicia el cronómetro
     await _runTimer(taskId);
@@ -284,9 +284,70 @@ class TaskProvider with ChangeNotifier {
     await _updateTimeEntry(task, now, elapsedMillis, roundToSecond);
   }
 
+  Future<void> _updateTimeDays(Id taskId, {bool roundToSecond = false}) async {
+    final Task task = _getActiveTask(taskId);
+
+    // Última fecha actualizada
+    DateTime lastDateTime = task.lastUpdated;
+
+    // Actualizar tiempo
+    final (DateTime now, int totalElapsedMillis) =
+        task.updateElapsedTime(roundToSecond: roundToSecond);
+
+    // Reloj del sistema atrasado ?
+    final bool reverse = now.isBefore(lastDateTime);
+
+    // Tiempo a distribuir
+    int remainingElapsedMillis = totalElapsedMillis;
+
+    // Último día actualizado
+    DateTime startOfDay = lastDateTime.toDate();
+
+    // Actualizar historial de tiempo para los días anteriores
+    while (!startOfDay.isSameDay(now)) {
+      // Inicio del día siguiente
+      final DateTime endOfDay = startOfDay.add(const Duration(days: 1));
+
+      // Calcula el tiempo transcurrido en ese día
+      // lastDateTime <= now: +(endOfDay - lastDateTime)
+      // now < lastDateTime (reverse): -(lastDateTime - startOfDay)
+      Duration elapsedDayTime =
+          (reverse ? startOfDay : endOfDay).difference(lastDateTime);
+
+      int elapsedDayMillis = elapsedDayTime.inMilliseconds;
+
+      // Actualiza el tiempo de ese día
+      await _updateTimeEntry(
+        task,
+        startOfDay,
+        elapsedDayMillis,
+        roundToSecond,
+      );
+
+      // Resta el tiempo actualizado de este día al tiempo restante
+      remainingElapsedMillis -= elapsedDayMillis;
+
+      // Avanza o retrocede la fecha a actualizar
+      lastDateTime = reverse ? startOfDay : endOfDay;
+
+      // Inicio del siguiente día a actualizar
+      startOfDay = reverse
+          ? lastDateTime.subtract(const Duration(days: 1))
+          : lastDateTime;
+    }
+
+    // Actualizar historial de tiempo para el día actual
+    await _updateTimeEntry(
+      task,
+      startOfDay,
+      remainingElapsedMillis,
+      roundToSecond,
+    );
+  }
+
   Future<void> _updateTimeEntry(
     Task task,
-    DateTime now,
+    DateTime timestamp,
     int elapsedMillis,
     bool roundToSecond,
   ) async {
@@ -294,13 +355,16 @@ class TaskProvider with ChangeNotifier {
 
     TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
 
-    bool isNew = timeEntry == null || !timeEntry.date.isSameDay(now);
+    bool isFirst = timeEntry == null;
+
+    bool isNew = isFirst || !timeEntry.date.isSameDay(timestamp);
 
     if (isNew) {
       // Crear un nuevo TimeEntry
-      timeEntry = TimeEntry()
-        ..date = now
-        ..milliseconds = elapsedMillis;
+      timeEntry = TimeEntry.ofMillis(
+        isFirst ? timestamp : timestamp.toDate(),
+        elapsedMillis,
+      );
     } else {
       // Actualizar el TimeEntry existente
       timeEntry.milliseconds += elapsedMillis;

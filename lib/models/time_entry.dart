@@ -16,6 +16,15 @@ class TimeEntry implements Comparable<TimeEntry> {
 
   late int milliseconds;
 
+  TimeEntry(); // Isar needs an empty constructor
+
+  TimeEntry.ofDate(this.date) : milliseconds = 0;
+
+  TimeEntry.ofMillis(this.date, this.milliseconds);
+
+  TimeEntry.ofDuration(this.date, Duration duration)
+      : milliseconds = duration.inMilliseconds;
+
   @ignore
   int get seconds => duration.inSeconds;
 

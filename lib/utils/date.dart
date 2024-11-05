@@ -3,7 +3,9 @@ import 'package:intl/intl.dart';
 extension DateExtension on DateTime {
   DateTime toDate() => DateTime(year, month, day);
 
-  static bool isSameDay(DateTime a, DateTime b) {
+  bool isSameDay(DateTime other) => _isSameDay(this, other);
+
+  static bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
@@ -29,6 +31,4 @@ extension TimeFormatter on DateTime {
   String formatDate() => dateFormat.format(this);
 
   String formatDateMEd() => dateFormatMEd.format(this);
-
-  bool isSameDay(DateTime other) => DateExtension.isSameDay(this, other);
 }

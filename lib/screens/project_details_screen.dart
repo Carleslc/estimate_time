@@ -336,8 +336,13 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               iconSize: 28,
                               backgroundColor: Colors.blue.shade800,
                             ),
-                            onPressed: () =>
-                                AddTaskDialog.showCopyDialog(context, task),
+                            onPressed: () {
+                              AddTaskDialog.showCopyDialog(context, task)
+                                  .then((_) {
+                                // Actualizar tareas y tiempos
+                                _updateProjectTimeAndChart();
+                              });
+                            },
                           ),
                         )
                       :

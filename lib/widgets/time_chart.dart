@@ -13,11 +13,11 @@ class TimeChart extends StatelessWidget {
   late final double _maxY;
 
   TimeChart({
-    Key? key,
+    super.key,
     required this.chartData,
     required this.chartLabels,
     this.axisX = 'Día',
-  }) : super(key: key) {
+  }) {
     _maxY = chartData.fold(
       0, // default
       (max, entry) => entry.minutes > max ? entry.minutes : max,
@@ -94,7 +94,7 @@ class TimeChart extends StatelessWidget {
           leftTitles: AxisTitles(
             axisNameWidget: Text(
               'Tiempo (${axisYinMinutes ? 'mins' : 'hrs'})', // Y
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
@@ -141,7 +141,7 @@ class TimeChart extends StatelessWidget {
                     axisSide: AxisSide.bottom,
                     child: Text(
                       chartLabels[value.toInt()].label,
-                      style: TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: 12),
                     ),
                   );
                 }
@@ -149,7 +149,7 @@ class TimeChart extends StatelessWidget {
               },
             ),
           ),
-          topTitles: AxisTitles(
+          topTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false),
           ),
         ),
@@ -159,7 +159,7 @@ class TimeChart extends StatelessWidget {
           drawHorizontalLine: true,
           horizontalInterval: intervalY / 2,
           getDrawingHorizontalLine: (value) {
-            return FlLine(
+            return const FlLine(
               color: Colors.grey,
               strokeWidth: 0.6,
               dashArray: [5, 5],

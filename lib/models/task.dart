@@ -183,10 +183,11 @@ class Task {
   }
 
   void update(Task other) {
-    if (id != other.id)
+    if (id != other.id) {
       throw AssertionError(
         'Cannot update task $id from different task with id ${other.id}',
       );
+    }
     title = other.title;
     description = other.description;
     lastUpdated = other.lastUpdated;

@@ -24,7 +24,7 @@ class TimerService {
     if (isRunning(id)) return;
 
     // Inicia el cronómetro
-    final startTimeCallback = () {
+    void startTimeCallback() {
       // Primer tick
       (onFirstTick ?? onTick).call();
       // Ticks en intervalos de [tickDuration]
@@ -33,7 +33,7 @@ class TimerService {
           onTick();
         });
       }
-    };
+    }
     if (syncTime != null) {
       // Primer tick al siguiente segundo en punto de [syncTime]
       _atStartOfNextSecond(id, syncTime, startTimeCallback);

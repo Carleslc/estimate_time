@@ -165,7 +165,7 @@ class ProjectProvider with ChangeNotifier {
     Map<DateTime, double> dailyMinutesMap = {};
 
     final now = DateTime.now();
-    final lastWeek = now.subtract(Duration(days: 7));
+    final lastWeek = now.subtract(const Duration(days: 7));
 
     for (Task task in projectTasks) {
       await task.timeHistory.load();

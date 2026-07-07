@@ -116,7 +116,7 @@ abstract class ShowMessage {
     bool hasAction = actionLabel != null && onAction != null;
 
     final snackbar = SnackBar(
-      content: Container(
+      content: SizedBox(
         height: height,
         child: Align(
           alignment: Alignment.centerLeft,
@@ -160,7 +160,7 @@ Future<T?> tryOrShowError<T>(
   try {
     return await callback();
   } catch (e) {
-    log('${errorMessage}: $e');
+    log('$errorMessage: $e');
     ShowMessage.error(errorMessage);
     return null;
   }

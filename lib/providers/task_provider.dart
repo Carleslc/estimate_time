@@ -74,17 +74,17 @@ class TaskProvider with ChangeNotifier {
     await _loadArchivedTasks();
 
     if (resumeTimers) {
-      final List<Future> _timerFutures = [];
+      final List<Future> timerFutures = [];
 
       // Reanudar cronómetros para tareas que estaban corriendo
       for (Task task in _tasks.values) {
         if (task.isRunning) {
-          _timerFutures.add(_resumeTimer(task.id));
+          timerFutures.add(_resumeTimer(task.id));
         }
       }
 
       // Espera a que todos los cronómetros empiecen
-      await Future.wait(_timerFutures);
+      await Future.wait(timerFutures);
     }
 
     notifyListeners();
@@ -455,7 +455,7 @@ class TaskProvider with ChangeNotifier {
   void _addTimeEntryChart(Task task, TimeEntry timeEntry) {
     // Filtrar la última semana
     final now = DateTime.now();
-    if (timeEntry.day.isAfter(now.subtract(Duration(days: 7)))) {
+    if (timeEntry.day.isAfter(now.subtract(const Duration(days: 7)))) {
       final chartData = getChartDataForTask(task.id);
       if (chartData != null) {
         chartData.points.add(ChartPoint(
@@ -487,7 +487,7 @@ class TaskProvider with ChangeNotifier {
   void updateTaskChartData(final Task task) {
     // Filtrar la última semana
     final now = DateTime.now();
-    final lastWeek = now.subtract(Duration(days: 7));
+    final lastWeek = now.subtract(const Duration(days: 7));
     final recentEntries = task.timeHistory
         .toList()
         .where((timeEntry) => timeEntry.day.isAfter(lastWeek))

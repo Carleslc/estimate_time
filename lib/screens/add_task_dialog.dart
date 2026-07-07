@@ -41,7 +41,7 @@ class AddTaskDialog extends StatefulWidget {
         );
 
   @override
-  _AddTaskDialogState createState() => _AddTaskDialogState();
+  State<AddTaskDialog> createState() => _AddTaskDialogState();
 
   static Future<void> showCopyDialog(
       BuildContext context, final Task task) async {
@@ -190,12 +190,12 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               children: [
                 // Proyecto
                 DropdownButtonFormField<Project>(
-                  decoration: InputDecoration(labelText: 'Proyecto'),
+                  decoration: const InputDecoration(labelText: 'Proyecto'),
                   icon: widget.projectId == null
                       ? const Icon(Icons.arrow_drop_down)
                       : const SizedBox.shrink(),
                   items: [
-                    DropdownMenuItem(value: null, child: Text('–')),
+                    const DropdownMenuItem(value: null, child: Text('–')),
                     ..._availableProjects.map(
                       (project) => DropdownMenuItem(
                         value: project,
@@ -205,7 +205,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                               backgroundColor: project.color,
                               radius: 8,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(project.name),
                           ],
                         ),
@@ -219,9 +219,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                             _selectedProject = value;
                           });
                         },
-                  value: _selectedProject,
+                  initialValue: _selectedProject,
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 // Título
                 TextFormField(
                   autofocus: widget.title == null,
@@ -250,11 +250,11 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     FocusScope.of(context).unfocus();
                   },
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 // Descripción
                 TextFormField(
                   controller: _descriptionController,
-                  decoration: InputDecoration(labelText: 'Descripción'),
+                  decoration: const InputDecoration(labelText: 'Descripción'),
                   minLines: 2,
                   maxLines: 10,
                   // TODO: Avoid requesting focus on time picker close (same in title)
@@ -266,25 +266,25 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     FocusScope.of(context).unfocus();
                   },
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 // Tiempo Estimado
                 Row(
                   children: [
                     Expanded(
                       child: TextFormField(
                         controller: _estimatedHoursController,
-                        decoration: InputDecoration(labelText: 'Horas'),
+                        decoration: const InputDecoration(labelText: 'Horas'),
                         keyboardType: TextInputType.number,
                         onSaved: (value) {
                           _estimatedHours = value.parseIntOrZero();
                         },
                       ),
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: TextFormField(
                         controller: _estimatedMinutesController,
-                        decoration: InputDecoration(labelText: 'Minutos'),
+                        decoration: const InputDecoration(labelText: 'Minutos'),
                         keyboardType: TextInputType.number,
                         onSaved: (value) {
                           _estimatedMinutes = value.parseIntOrZero();
@@ -335,7 +335,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   _selectedProject,
                   _estimatedTime,
                 );
-                Navigator.pop(context, newTask);
+                if (context.mounted) Navigator.pop(context, newTask);
               }, 'No se ha podido crear la tarea');
             }
           },

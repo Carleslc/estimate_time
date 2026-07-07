@@ -11,7 +11,7 @@ class ProjectTag extends StatelessWidget {
   const ProjectTag({
     super.key,
     required this.project,
-    this.dense = null,
+    this.dense,
     this.borderSide = BorderSide.none,
   });
 
@@ -34,7 +34,7 @@ class ProjectTag extends StatelessWidget {
       ),
       backgroundColor: project.color,
       padding: dense != null
-          ? EdgeInsets.symmetric(
+          ? const EdgeInsets.symmetric(
               horizontal: 4,
             )
           : null,

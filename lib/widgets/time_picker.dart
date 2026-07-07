@@ -26,7 +26,7 @@ Future<TimeOfDay?> showTimePickerMaterial({
 }) {
   return showTimePicker(
     context: context,
-    initialTime: initialTime ?? TimeOfDay(hour: 0, minute: 0),
+    initialTime: initialTime ?? const TimeOfDay(hour: 0, minute: 0),
     initialEntryMode: initialEntryMode,
     orientation: MediaQuery.orientationOf(context),
     hourLabelText: 'Horas',

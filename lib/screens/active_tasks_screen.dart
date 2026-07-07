@@ -10,6 +10,8 @@ import '../widgets/timer_button.dart';
 import 'add_task_dialog.dart';
 
 class ActiveTasksScreen extends StatefulWidget {
+  const ActiveTasksScreen({super.key});
+
   @override
   State<ActiveTasksScreen> createState() => _ActiveTasksScreenState();
 }
@@ -32,7 +34,7 @@ class _ActiveTasksScreenState extends State<ActiveTasksScreen> {
         final tasks = taskProvider.tasks;
 
         return tasks.isEmpty
-            ? Center(child: const Text('No hay tareas'))
+            ? const Center(child: Text('No hay tareas'))
             : ListView.separated(
                 itemCount: tasks.length,
                 separatorBuilder: (_, __) => const Divider(),
@@ -47,7 +49,7 @@ class _ActiveTasksScreenState extends State<ActiveTasksScreen> {
                     background: Container(
                       color: Colors.orange,
                       alignment: Alignment.centerLeft,
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: const Icon(Icons.archive, color: Colors.white),
                     ),
                     child: ListTile(
@@ -110,10 +112,10 @@ class _ActiveTasksScreenState extends State<ActiveTasksScreen> {
         message: 'Añadir tarea',
         child: FloatingActionButton(
           heroTag: 'add_task_fab',
-          child: Icon(Icons.add),
+          child: const Icon(Icons.add),
           onPressed: () => showDialog(
             context: context,
-            builder: (_) => AddTaskDialog(),
+            builder: (_) => const AddTaskDialog(),
           ),
         ),
       ),

@@ -4,10 +4,10 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 class ColorPickerDialog extends StatefulWidget {
   final Color initialColor;
 
-  ColorPickerDialog({required this.initialColor});
+  const ColorPickerDialog({super.key, required this.initialColor});
 
   @override
-  _ColorPickerDialogState createState() => _ColorPickerDialogState();
+  State<ColorPickerDialog> createState() => _ColorPickerDialogState();
 }
 
 class _ColorPickerDialogState extends State<ColorPickerDialog> {
@@ -23,7 +23,7 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Selecciona un color'),
+      title: const Text('Selecciona un color'),
       content: SingleChildScrollView(
         child: BlockPicker(
           pickerColor: _currentColor,
@@ -32,11 +32,11 @@ class _ColorPickerDialogState extends State<ColorPickerDialog> {
       ),
       actions: [
         TextButton(
-          child: Text('Cancelar'),
+          child: const Text('Cancelar'),
           onPressed: () => Navigator.pop(context),
         ),
         ElevatedButton(
-          child: Text('Seleccionar'),
+          child: const Text('Seleccionar'),
           onPressed: () => Navigator.pop(context, _currentColor),
         ),
       ],

@@ -7,8 +7,10 @@ import '../widgets/color_picker_dialog.dart';
 import '../widgets/required_field_label.dart';
 
 class AddProjectDialog extends StatefulWidget {
+  const AddProjectDialog({super.key});
+
   @override
-  _AddProjectDialogState createState() => _AddProjectDialogState();
+  State<AddProjectDialog> createState() => _AddProjectDialogState();
 }
 
 class _AddProjectDialogState extends State<AddProjectDialog> {
@@ -48,12 +50,12 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
                 FocusScope.of(context).unfocus();
               },
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             // Selector de Color
             Row(
               children: [
-                Text('Color:'),
-                SizedBox(width: 10),
+                const Text('Color:'),
+                const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () async {
                     Color? color = await showDialog(
@@ -92,7 +94,7 @@ class _AddProjectDialogState extends State<AddProjectDialog> {
 
               await tryOrShowError(() async {
                 await projectProvider.createProject(_name, _selectedColor);
-                Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               }, 'No se ha podido crear el proyecto');
             }
           },

@@ -31,7 +31,7 @@ class Project {
   Color _color = Colors.blue;
 
   set color(Color color) {
-    _colorValue = color.value;
+    _colorValue = color.toARGB32();
     _color = color;
     _updateLuminance();
   }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/message.dart';
 
 abstract final class AppStyles {
-  static Color _seedColor = Colors.lightGreen;
+  static const Color _seedColor = Colors.lightGreen;
 
   static late ColorScheme colorScheme;
 
@@ -48,7 +48,7 @@ abstract final class AppStyles {
         actionTextColor: colorScheme.inversePrimary,
         contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
         behavior: SnackBarBehavior.fixed,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.zero),
         ),
       ),
@@ -58,7 +58,7 @@ abstract final class AppStyles {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        sizeConstraints: BoxConstraints.tight(Size.fromRadius(32)),
+        sizeConstraints: BoxConstraints.tight(const Size.fromRadius(32)),
         iconSize: 32,
       ),
       tooltipTheme: TooltipThemeData(
@@ -66,7 +66,7 @@ abstract final class AppStyles {
         margin: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: colorScheme.inverseSurface,
-          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

@@ -19,10 +19,10 @@ import '../widgets/timer_button.dart';
 class TaskDetailsScreen extends StatefulWidget {
   final Task task;
 
-  TaskDetailsScreen({required this.task});
+  const TaskDetailsScreen({super.key, required this.task});
 
   @override
-  _TaskDetailsScreenState createState() => _TaskDetailsScreenState();
+  State<TaskDetailsScreen> createState() => _TaskDetailsScreenState();
 }
 
 class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
@@ -92,7 +92,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   String get _progressOrDeviation {
     int progressEstimation = widget.task.progressEstimation.round();
     return progressEstimation <= 100
-        ? '${progressEstimation}%'
+        ? '$progressEstimation%'
         : '+${widget.task.deviation.round()}%';
   }
 
@@ -102,7 +102,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appBarTitle = const Text('Detalles de la tarea');
+    const appBarTitle = Text('Detalles de la tarea');
 
     return Selector<TaskProvider, Task?>(
         selector: (context, taskProvider) =>
@@ -113,7 +113,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           if (task == null) {
             return Scaffold(
               appBar: AppBar(title: appBarTitle),
-              body: Center(child: const Text('Tarea no encontrada')),
+              body: const Center(child: Text('Tarea no encontrada')),
             );
           }
           return Scaffold(
@@ -126,11 +126,11 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   Tooltip(
                     message: 'Eliminar',
                     child: IconButton(
-                      icon: Icon(Icons.delete),
+                      icon: const Icon(Icons.delete),
                       onPressed: () async {
                         _allowRebuild();
                         await _taskProvider.deleteTask(task);
-                        Navigator.pop(context);
+                        if (context.mounted) Navigator.pop(context);
                       },
                     ),
                   ),
@@ -156,7 +156,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                 // Detalles de la tarea
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.only(left: 20, right: 20, top: 16),
+                    padding: const EdgeInsets.only(left: 20, right: 20, top: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -169,7 +169,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                               Expanded(
                                 child: Text(
                                   task.title,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -178,7 +178,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                             ],
                           ),
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         // Etiqueta del Proyecto
                         FutureBuilder<Project?>(
                           future: task.getProject(),
@@ -358,7 +358,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   }
 
   void _editTitle(BuildContext context, Task task) {
-    final _controller = TextEditingController(text: task.title);
+    final controller = TextEditingController(text: task.title);
 
     showDialog(
       context: context,
@@ -366,7 +366,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
         title: const Text('Editar título'),
         content: TextField(
           autofocus: true,
-          controller: _controller,
+          controller: controller,
           decoration: const InputDecoration(labelText: 'Título'),
         ),
         actions: [
@@ -377,7 +377,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ElevatedButton(
             child: const Text('Guardar'),
             onPressed: () async {
-              final newTitle = _controller.text.trim();
+              final newTitle = controller.text.trim();
 
               if (newTitle.isNotEmpty) {
                 _allowRebuild();
@@ -393,14 +393,14 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   }
 
   void _editDescription(BuildContext context, Task task) {
-    final _controller = TextEditingController(text: task.description);
+    final controller = TextEditingController(text: task.description);
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Editar descripción'),
         content: TextField(
-          controller: _controller,
+          controller: controller,
           decoration: const InputDecoration(labelText: 'Descripción'),
           minLines: 3,
           maxLines: 20,
@@ -413,7 +413,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
           ElevatedButton(
             child: const Text('Guardar'),
             onPressed: () async {
-              final newDescription = _controller.text.trim();
+              final newDescription = controller.text.trim();
 
               if (newDescription.isNotEmpty) {
                 _allowRebuild();

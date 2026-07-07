@@ -26,7 +26,7 @@ void main() async {
 class EstimateTimeApp extends StatefulWidget {
   static const String title = 'EstimateTime';
 
-  const EstimateTimeApp();
+  const EstimateTimeApp({super.key});
 
   @override
   State<EstimateTimeApp> createState() => _EstimateTimeAppState();
@@ -51,7 +51,7 @@ class _EstimateTimeAppState extends State<EstimateTimeApp> {
       ],
       child: MaterialApp(
         title: EstimateTimeApp.title,
-        home: HomeScreen(),
+        home: const HomeScreen(),
         theme: AppStyles.theme(context),
         debugShowCheckedModeBanner: false,
         routes: NavigationProvider.routes,
@@ -59,9 +59,9 @@ class _EstimateTimeAppState extends State<EstimateTimeApp> {
         navigatorObservers: [NavigationProvider.routeObserver],
         scaffoldMessengerKey: ShowMessage.scaffoldMessengerKey,
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: [
-          const Locale.fromSubtags(languageCode: 'es', countryCode: 'ES'),
-          const Locale.fromSubtags(languageCode: 'en'),
+        supportedLocales: const [
+          Locale.fromSubtags(languageCode: 'es', countryCode: 'ES'),
+          Locale.fromSubtags(languageCode: 'en'),
         ],
       ),
     );

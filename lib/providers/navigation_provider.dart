@@ -18,6 +18,7 @@ enum AppPage implements AppRoute {
   projects('/projects'),
   archivedTasks('/archivedTasks');
 
+  @override
   final String route;
 
   const AppPage(this.route);
@@ -27,6 +28,7 @@ enum AppScreen implements AppRoute {
   taskDetails('/taskDetails'),
   projectDetails('/projectDetails');
 
+  @override
   final String route;
 
   const AppScreen(this.route);
@@ -41,9 +43,9 @@ class NavigationProvider with ChangeNotifier {
 
   // App routes
   static final routes = {
-    AppPage.activeTasks.route: (context) => ActiveTasksScreen(),
-    AppPage.projects.route: (context) => ProjectsScreen(),
-    AppPage.archivedTasks.route: (context) => ArchivedTasksScreen(),
+    AppPage.activeTasks.route: (context) => const ActiveTasksScreen(),
+    AppPage.projects.route: (context) => const ProjectsScreen(),
+    AppPage.archivedTasks.route: (context) => const ArchivedTasksScreen(),
     AppScreen.taskDetails.route: (context) {
       final Task task = ModalRoute.of(context)!.settings.arguments as Task;
       return TaskDetailsScreen(task: task);

@@ -8,6 +8,8 @@ import 'add_project_dialog.dart';
 // TODO: Reordenar proyectos
 
 class ProjectsScreen extends StatefulWidget {
+  const ProjectsScreen({super.key});
+
   @override
   State<ProjectsScreen> createState() => _ProjectsScreenState();
 }
@@ -31,7 +33,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             title: const Text('Proyectos'),
           ),
           body: projects.isEmpty
-              ? Center(child: const Text('No hay proyectos'))
+              ? const Center(child: Text('No hay proyectos'))
               : ListView.builder(
                   itemCount: projects.length,
                   itemBuilder: (_, index) {
@@ -54,7 +56,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             .navigateToProjectDetails(project)
                             .then((_) {
                           // Recarga los proyectos cuando la pantalla se vuelve a mostrar
-                          context.read<ProjectProvider>().loadProjects();
+                          if (context.mounted) {
+                            context.read<ProjectProvider>().loadProjects();
+                          }
                         });
                       },
                     );
@@ -64,10 +68,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             message: 'Añadir proyecto',
             child: FloatingActionButton(
               heroTag: 'add_project_fab',
-              child: Icon(Icons.library_add),
+              child: const Icon(Icons.library_add),
               onPressed: () => showDialog(
                 context: context,
-                builder: (_) => AddProjectDialog(),
+                builder: (_) => const AddProjectDialog(),
               ),
             ),
           ),

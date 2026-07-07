@@ -10,6 +10,8 @@ import '../widgets/project_tag.dart';
 import 'add_task_dialog.dart';
 
 class ArchivedTasksScreen extends StatefulWidget {
+  const ArchivedTasksScreen({super.key});
+
   @override
   State<ArchivedTasksScreen> createState() => _ArchivedTasksScreenState();
 }
@@ -32,7 +34,7 @@ class _ArchivedTasksScreenState extends State<ArchivedTasksScreen> {
         final archivedTasks = taskProvider.archivedTasks;
 
         return archivedTasks.isEmpty
-            ? Center(child: const Text('No hay tareas archivadas'))
+            ? const Center(child: Text('No hay tareas archivadas'))
             : ListView.separated(
                 itemCount: archivedTasks.length,
                 separatorBuilder: (_, __) => const Divider(),
@@ -54,13 +56,13 @@ class _ArchivedTasksScreenState extends State<ArchivedTasksScreen> {
                     background: Container(
                       color: Colors.red,
                       alignment: Alignment.centerLeft,
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: const Icon(Icons.delete, color: Colors.white),
                     ),
                     secondaryBackground: Container(
                       color: Colors.green,
                       alignment: Alignment.centerRight,
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: const Icon(Icons.unarchive, color: Colors.white),
                     ),
                     child: ListTile(
@@ -82,7 +84,7 @@ class _ArchivedTasksScreenState extends State<ArchivedTasksScreen> {
                                   ),
                                 );
                               }
-                              return SizedBox.shrink();
+                              return const SizedBox.shrink();
                             },
                           ),
                           // Título
@@ -98,7 +100,7 @@ class _ArchivedTasksScreenState extends State<ArchivedTasksScreen> {
                       // Tiempo
                       subtitle: Text(
                         task.totalTime.formatTime(),
-                        style: TextStyle(fontSize: 16),
+                        style: const TextStyle(fontSize: 16),
                       ),
                       // Desarchivar / Copiar
                       trailing: Row(
@@ -138,7 +140,9 @@ class _ArchivedTasksScreenState extends State<ArchivedTasksScreen> {
                             .then((_) {
                           // Recarga las tareas cuando la pantalla se vuelve a mostrar
                           // Desde detalles, por si se ha eliminado la tarea
-                          context.read<TaskProvider>().loadArchivedTasks();
+                          if (context.mounted) {
+                            context.read<TaskProvider>().loadArchivedTasks();
+                          }
                         });
                       },
                     ),

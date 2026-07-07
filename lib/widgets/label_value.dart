@@ -22,7 +22,7 @@ class LabelValue extends StatelessWidget {
       TextSpan(
         children: [
           TextSpan(
-            text: '${label}${separator}',
+            text: '$label$separator',
             style: labelStyle ?? Theme.of(context).textTheme.bodyMedium,
           ),
           TextSpan(

@@ -47,7 +47,7 @@ class TimerButton extends StatelessWidget {
             onPressed: onPressed,
             label: Text(
               label!,
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
             ),
             icon: icon,
             style: labelButtonStyle,

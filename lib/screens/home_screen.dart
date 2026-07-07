@@ -8,11 +8,13 @@ import 'archived_tasks_screen.dart';
 import 'projects_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  final List<Widget> _screens = [
+  static const List<Widget> _screens = [
     ActiveTasksScreen(),
     ProjectsScreen(),
     ArchivedTasksScreen(),
   ];
+
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class HomeScreen extends StatelessWidget {
       builder: (_, navigationProvider, __) {
         return Scaffold(
           appBar: AppBar(
-            title: Text(EstimateTimeApp.title),
+            title: const Text(EstimateTimeApp.title),
           ),
           body: Theme(
             data: theme.copyWith(
@@ -41,7 +43,7 @@ class HomeScreen extends StatelessWidget {
             height: 70,
             child: BottomNavigationBar(
               currentIndex: navigationProvider.currentPage.index,
-              items: [
+              items: const [
                 BottomNavigationBarItem(
                   icon: Icon(Icons.timer), // Icons.task
                   label: 'Cronómetros',

@@ -22,7 +22,7 @@ linter:
   # producing the lint.
   rules:
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    line_length: 80 # https://dart.dev/tools/linter-rules/lines_longer_than_80_chars
+    # lines_longer_than_80_chars: true # https://dart.dev/tools/linter-rules/lines_longer_than_80_chars
     prefer_single_quotes: true # https://dart.dev/tools/linter-rules/prefer_single_quotes
     directives_ordering: true # https://dart.dev/effective-dart/style#ordering
     prefer_relative_imports: true # https://dart.dev/effective-dart/usage#prefer-relative-import-paths

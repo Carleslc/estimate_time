@@ -19,7 +19,7 @@ import 'add_task_dialog.dart';
 class ProjectDetailsScreen extends StatefulWidget {
   final Project project;
 
-  ProjectDetailsScreen({required this.project});
+  const ProjectDetailsScreen({super.key, required this.project});
 
   @override
   State<ProjectDetailsScreen> createState() => _ProjectDetailsScreenState();
@@ -104,7 +104,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
           0, (sum, task) => sum + (task.estimatedTimeMillis ?? 0));
 
       // Calcular tiempo medio
-      if (_projectTasks.length > 0) {
+      if (_projectTasks.isNotEmpty) {
         _avgMilliseconds = (_totalMilliseconds / _projectTasks.length).round();
       }
 
@@ -166,7 +166,6 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                           onPressed: () => Navigator.pop(context, false),
                         ),
                         ElevatedButton(
-                          child: const Text('Eliminar'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
                                 Theme.of(context).colorScheme.error,
@@ -174,6 +173,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                                 Theme.of(context).colorScheme.onError,
                           ),
                           onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Eliminar'),
                         ),
                       ],
                     ),
@@ -241,9 +241,8 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
                               // Tiempo total
                               LabelValue(
                                 label: 'Tiempo total',
-                                value: ' ' +
-                                    Duration(milliseconds: _totalMilliseconds)
-                                        .formatOptionalSeconds(),
+                                value: ' ${Duration(milliseconds: _totalMilliseconds)
+                                        .formatOptionalSeconds()}',
                               ),
                               // Tiempo medio
                               if (_projectTasks.length > 1 &&
@@ -379,7 +378,7 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
         floatingActionButton: Tooltip(
           message: 'Añadir tarea de ${widget.project.name}',
           child: FloatingActionButton(
-            child: Icon(Icons.add_box),
+            child: const Icon(Icons.add_box),
             onPressed: () {
               showDialog(
                 context: context,
@@ -396,31 +395,31 @@ class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
   }
 
   void _editName(BuildContext context, ProjectProvider projectProvider) {
-    final _controller = TextEditingController(text: widget.project.name);
+    final controller = TextEditingController(text: widget.project.name);
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Editar nombre'),
+        title: const Text('Editar nombre'),
         content: TextField(
           autofocus: true,
-          controller: _controller,
-          decoration: InputDecoration(labelText: 'Nombre'),
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Nombre'),
         ),
         actions: [
           TextButton(
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
             onPressed: () => Navigator.pop(context),
           ),
           ElevatedButton(
-            child: Text('Guardar'),
+            child: const Text('Guardar'),
             onPressed: () async {
-              final newName = _controller.text.trim();
+              final newName = controller.text.trim();
 
               if (newName.isNotEmpty) {
                 widget.project.name = newName;
                 await projectProvider.updateProject(widget.project);
-                Navigator.pop(context); // Cerrar Dialog
+                if (context.mounted) Navigator.pop(context); // Cerrar Dialog
               }
             },
           ),

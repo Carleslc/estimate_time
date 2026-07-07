@@ -74,7 +74,7 @@ abstract final class AppStyles {
           textStyle: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         titleTextStyle: TextStyle(
           fontSize: 22,
           color: colorScheme.secondary,

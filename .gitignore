@@ -32,6 +32,12 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Isar native core, descargado por Isar.initializeIsarCore(download: true)
+# al ejecutar los tests en el host (no se usa en la app, que lo obtiene de isar_community_flutter_libs)
+libisar.dylib
+libisar.so
+isar.dll
+
 # Symbolication related
 app.*.symbols
 

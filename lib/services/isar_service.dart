@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/project.dart';
@@ -11,6 +11,9 @@ class IsarService {
   IsarService() {
     db = _openDB();
   }
+
+  /// Instancia con una base de datos ya abierta (tests)
+  IsarService.withDb(this.db);
 
   Future<Isar> _openDB() async {
     final dir = await getApplicationDocumentsDirectory();

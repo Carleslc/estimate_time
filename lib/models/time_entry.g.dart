@@ -47,7 +47,7 @@ const TimeEntrySchema = CollectionSchema(
   getId: _timeEntryGetId,
   getLinks: _timeEntryGetLinks,
   attach: _timeEntryAttach,
-  version: '3.1.8',
+  version: '3.3.0-dev.1',
 );
 
 int _timeEntryEstimateSize(

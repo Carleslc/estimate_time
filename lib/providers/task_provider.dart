@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import '../models/chart_data.dart';
 import '../models/project.dart';
@@ -66,7 +66,7 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> loadTasks() async {
-    _loadTasks(resumeTimers: false);
+    await _loadTasks(resumeTimers: false);
   }
 
   Future<void> _loadTasks({bool resumeTimers = true}) async {
@@ -126,16 +126,19 @@ class TaskProvider with ChangeNotifier {
     for (Task task in updatedTasks) {
       existingIds.add(task.id);
 
+      // Instancia de la tarea que se mantiene en memoria
+      Task keptTask = task;
+
       if (tasks.containsKey(task.id)) {
-        Task existingTask = tasks[task.id]!;
-        existingTask.update(task);
+        keptTask = tasks[task.id]!;
+        keptTask.update(task);
       } else {
         tasks[task.id] = task;
       }
 
       // Inicializa el historial de tiempo y el gráfico
       await task.timeHistory.load();
-      setTodayTime(task);
+      setTodayTime(keptTask);
       updateTaskChartData(task);
     }
 
@@ -275,6 +278,13 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> _updateTime(Id taskId, {bool roundToSecond = false}) async {
     final Task task = _getActiveTask(taskId);
+
+    // Si ha cambiado el día desde la última actualización (al pasar la medianoche
+    // o al reanudar los ticks tras suspender la app en segundo plano)
+    // se distribuye el tiempo transcurrido entre los días correspondientes
+    if (!task.lastUpdated.isSameDay(DateTime.now())) {
+      return _updateTimeDays(taskId, roundToSecond: roundToSecond);
+    }
 
     // Actualizar tiempo
     final (DateTime now, int elapsedMillis) =
@@ -537,14 +547,20 @@ class TaskProvider with ChangeNotifier {
   }
 
   void setTodayTime(Task task) {
-    if (task.todayTimeEntry != null) return;
+    final DateTime now = DateTime.now();
+
+    if (task.todayTimeEntry != null &&
+        task.todayTimeEntry!.date.isSameDay(now)) {
+      return;
+    }
 
     TimeEntry? lastTimeEntry = task.lastTimeEntry;
 
-    if (lastTimeEntry != null && lastTimeEntry.date.isSameDay(DateTime.now())) {
-      // Actualiza todayTime
-      task.todayTimeEntry = lastTimeEntry;
-    }
+    // Actualiza todayTime, invalidándolo si es de un día anterior
+    task.todayTimeEntry =
+        lastTimeEntry != null && lastTimeEntry.date.isSameDay(now)
+            ? lastTimeEntry
+            : null;
   }
 
   Future<void> archiveTask(Task task) {

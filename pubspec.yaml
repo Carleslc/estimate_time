@@ -30,7 +30,8 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 
-isar_version: &isar_version 3.1.8
+# isar_community es la continuación en pub.dev del fork de isar-community.dev
+isar_version: &isar_version 3.3.0-dev.1
 
 dependencies:
   flutter:
@@ -47,12 +48,8 @@ dependencies:
   flutter_colorpicker: ^1.1.0
   fl_chart: ^0.69.0
   intl: ^0.19.0
-  isar:
-    version: *isar_version
-    hosted: https://pub.isar-community.dev
-  isar_flutter_libs:
-    version: *isar_version
-    hosted: https://pub.isar-community.dev
+  isar_community: *isar_version
+  isar_community_flutter_libs: *isar_version
 
 dev_dependencies:
   flutter_test:
@@ -65,9 +62,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
 
-  isar_generator:
-    hosted: https://pub.isar-community.dev
-    version: *isar_version
+  isar_community_generator: *isar_version
 
   build_runner: any
 

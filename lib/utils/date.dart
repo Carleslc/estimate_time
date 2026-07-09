@@ -20,9 +20,13 @@ extension TimeFormatter on DateTime {
   String formatTimeFuture({bool withSeconds = false, bool round = false}) {
     DateTime roundDate =
         round && second > 30 ? copyWith(minute: minute + 1, second: 0) : this;
-    return roundDate.isSameDay(DateTime.now())
-        ? roundDate.formatTime(withSeconds: withSeconds)
-        : timeDateFormat.format(roundDate);
+    return roundDate.formatTimeDate(withSeconds: withSeconds);
+  }
+
+  String formatTimeDate({bool withSeconds = false}) {
+    return isSameDay(DateTime.now())
+        ? formatTime(withSeconds: withSeconds)
+        : timeDateFormat.format(this);
   }
 
   String formatTime({bool withSeconds = true}) =>

@@ -105,223 +105,231 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     const appBarTitle = Text('Detalles de la tarea');
 
     return Selector<TaskProvider, Task?>(
-        selector: (context, taskProvider) =>
-            taskProvider.getTask(widget.task.id),
-        shouldRebuild: (_, next) => _lastUpdatedTask != next?.lastUpdated,
-        builder: (context, task, child) {
-          _lastUpdatedTask = task?.lastUpdated;
-          if (task == null) {
-            return Scaffold(
-              appBar: AppBar(title: appBarTitle),
-              body: const Center(child: Text('Tarea no encontrada')),
-            );
-          }
+      selector: (context, taskProvider) => taskProvider.getTask(widget.task.id),
+      shouldRebuild: (_, next) => _lastUpdatedTask != next?.lastUpdated,
+      builder: (context, task, child) {
+        _lastUpdatedTask = task?.lastUpdated;
+        if (task == null) {
           return Scaffold(
-            appBar: AppBar(
-              title: appBarTitle,
-              // TODO: Añadir Botón Copiar en los detalles de una tarea
-              actions: [
-                if (task.archived)
-                  // Eliminar tarea
-                  Tooltip(
-                    message: 'Eliminar',
-                    child: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () async {
-                        _allowRebuild();
-                        await _taskProvider.deleteTask(task);
-                        if (context.mounted) Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                // Toggle Archivar / Desarchivar
+            appBar: AppBar(title: appBarTitle),
+            body: const Center(child: Text('Tarea no encontrada')),
+          );
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: appBarTitle,
+            // TODO: Añadir Botón Copiar en los detalles de una tarea
+            actions: [
+              if (task.archived)
+                // Eliminar tarea
                 Tooltip(
-                  message: task.archived ? 'Desarchivar' : 'Archivar',
+                  message: 'Eliminar',
                   child: IconButton(
-                    icon: Icon(task.archived ? Icons.unarchive : Icons.archive),
+                    icon: const Icon(Icons.delete),
                     onPressed: () async {
                       _allowRebuild();
-                      if (task.archived) {
-                        await _taskProvider.unarchiveTask(task);
-                      } else {
-                        await _taskProvider.archiveTask(task);
-                      }
+                      await _taskProvider.deleteTask(task);
+                      if (context.mounted) Navigator.pop(context);
                     },
                   ),
                 ),
-              ],
-            ),
-            body: CustomScrollView(
-              slivers: [
-                // Detalles de la tarea
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 20, right: 20, top: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Título editable
-                        GestureDetector(
-                          onTap: () => _editTitle(context, task),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  task.title,
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+              // Toggle Archivar / Desarchivar
+              Tooltip(
+                message: task.archived ? 'Desarchivar' : 'Archivar',
+                child: IconButton(
+                  icon: Icon(task.archived ? Icons.unarchive : Icons.archive),
+                  onPressed: () async {
+                    _allowRebuild();
+                    if (task.archived) {
+                      await _taskProvider.unarchiveTask(task);
+                    } else {
+                      await _taskProvider.archiveTask(task);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          body: CustomScrollView(
+            slivers: [
+              // Detalles de la tarea
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 20, top: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Título editable
+                      GestureDetector(
+                        onTap: () => _editTitle(context, task),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                task.title,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 10),
-                        // Etiqueta del Proyecto
-                        FutureBuilder<Project?>(
-                          future: task.getProject(),
-                          builder: (_, snapshot) {
-                            final project = snapshot.data;
-                            if (project == null) return const SizedBox.shrink();
-                            return GestureDetector(
-                              onTap: () {
-                                context
-                                    .read<NavigationProvider>()
-                                    .navigateToProjectDetails(project);
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: ProjectTag(project: project),
-                              ),
-                            );
-                          },
-                        ),
-                        // Descripción editable
-                        if (task.description.isNotBlank)
-                          GestureDetector(
-                            onTap: () => _editDescription(context, task),
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: task.totalTimeMillis > 0 ? 20 : 0,
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      task.description,
-                                      softWrap: true,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        // Tiempo
-                        if (task.totalTimeMillis > 0)
-                          LabelValue(
-                            label: 'Total',
-                            value: task.totalTime.formatOptionalSeconds(),
-                          ),
-                        if (task.todayTimeMillis != null)
-                          GestureDetector(
-                            onTap: () => _editTodayTime(context, task),
-                            child: LabelValue(
-                              label: 'Hoy',
-                              value: (task.todayTime ?? Duration.zero).format(),
-                              separator: ':   ',
-                            ),
-                          ),
-                        if (task.archived)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              top: 30,
-                              bottom:
-                                  task.estimatedTimeMillis != null ? 32 : 22,
-                            ),
-                            child: Text(
-                              'Esta tarea está archivada',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                            ),
-                          )
-                        else
-                          // Play / Pause
-                          Padding(
-                            padding: EdgeInsets.only(
-                              top: 20,
-                              bottom:
-                                  task.estimatedTimeMillis != null ? 20 : 10,
-                            ),
-                            child: TimerButton(
-                              isRunning: task.isRunning,
-                              label: task.timerLabel,
-                              onPressed: () async {
-                                await _taskProvider.toggleTaskTimer(task);
-
-                                if (task.isRunning) {
-                                  // Play
-                                  _updateEstimatedEndTime(task);
-                                }
-                              },
-                            ),
-                          ),
-                        // Estimación de hora de finalización
-                        if (task.isRunning && _estimatedEndTime != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: LabelValue(
-                              label: 'Finalización estimada',
-                              value: _estimatedEndTime!.formatTimeFuture(),
-                              separator: ': ',
-                            ),
-                          ),
-                        // Duración estimada
-                        if (task.estimatedTimeMillis != null)
-                          GestureDetector(
-                            onTap: () => _editEstimatedTime(context, task),
+                      ),
+                      const SizedBox(height: 10),
+                      // Etiqueta del Proyecto
+                      FutureBuilder<Project?>(
+                        future: task.getProject(),
+                        builder: (_, snapshot) {
+                          final project = snapshot.data;
+                          if (project == null) return const SizedBox.shrink();
+                          return GestureDetector(
+                            onTap: () {
+                              context
+                                  .read<NavigationProvider>()
+                                  .navigateToProjectDetails(project);
+                            },
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 10),
-                              child: LabelValue(
-                                label: 'Estimación',
-                                value: (task.estimatedTime ?? Duration.zero)
-                                    .format(),
-                              ),
+                              child: ProjectTag(project: project),
+                            ),
+                          );
+                        },
+                      ),
+                      // Descripción editable
+                      if (task.description.isNotBlank)
+                        GestureDetector(
+                          onTap: () => _editDescription(context, task),
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              bottom: task.totalTimeMillis > 0 ? 20 : 0,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    task.description,
+                                    softWrap: true,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        // Estadísticas
-                        if (task.estimatedTimeMillis != null &&
-                            task.estimatedTimeMillis! > 0)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 30),
+                        ),
+                      // Tiempo
+                      if (task.totalTimeMillis > 0)
+                        LabelValue(
+                          label: 'Total',
+                          value: task.totalTime.formatOptionalSeconds(),
+                        ),
+                      if (task.todayTimeMillis != null)
+                        GestureDetector(
+                          onTap: () => _editTodayTime(context, task),
+                          child: LabelValue(
+                            label: 'Hoy',
+                            value: (task.todayTime ?? Duration.zero).format(),
+                            separator: ':   ',
+                          ),
+                        ),
+                      if (task.archived)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: 30,
+                            bottom: task.estimatedTimeMillis != null ? 32 : 22,
+                          ),
+                          child: Text(
+                            'Esta tarea está archivada',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        )
+                      else
+                        // Play / Pause
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: 20,
+                            bottom: task.estimatedTimeMillis != null ? 20 : 10,
+                          ),
+                          child: TimerButton(
+                            isRunning: task.isRunning,
+                            label: task.timerLabel,
+                            onPressed: () async {
+                              await _taskProvider.toggleTaskTimer(task);
+
+                              if (task.isRunning) {
+                                // Play
+                                _updateEstimatedEndTime(task);
+                              }
+                            },
+                          ),
+                        ),
+                      // Hora de inicio
+                      if (task.startTime != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: LabelValue(
+                            label: 'Inicio',
+                            value: task.startTime!.formatTimeDate(),
+                            separator: ': ',
+                          ),
+                        ),
+                      // Estimación de hora de finalización
+                      if (task.isRunning && _estimatedEndTime != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: LabelValue(
+                            label: 'Finalización estimada',
+                            value: _estimatedEndTime!.formatTimeFuture(
+                              round: true,
+                            ),
+                            separator: ': ',
+                          ),
+                        ),
+                      // Duración estimada
+                      if (task.estimatedTimeMillis != null)
+                        GestureDetector(
+                          onTap: () => _editEstimatedTime(context, task),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
                             child: LabelValue(
-                              label: task.progressEstimation <= 100
-                                  ? 'Progreso estimado'
-                                  : 'Desviación',
-                              value: _progressOrDeviation,
-                              valueStyle: TextStyle(
-                                color: task.deviation <= 0
-                                    ? Colors.green
-                                    : Colors.red,
-                              ),
+                              label: 'Estimación',
+                              value: (task.estimatedTime ?? Duration.zero)
+                                  .format(),
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                      // Estadísticas
+                      if (task.estimatedTimeMillis != null &&
+                          task.estimatedTimeMillis! > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 30),
+                          child: LabelValue(
+                            label: task.progressEstimation <= 100
+                                ? 'Progreso estimado'
+                                : 'Desviación',
+                            value: _progressOrDeviation,
+                            valueStyle: TextStyle(
+                              color: task.deviation <= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                // Gráfico con los datos procesados
-                _chartWidget(task),
-              ],
-            ),
-          );
-        });
+              ),
+              // Gráfico con los datos procesados
+              _chartWidget(task),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _chartWidget(Task task) {
@@ -339,15 +347,16 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             constraints: hasChartData
                 ? const BoxConstraints(minHeight: 200)
                 : BoxConstraints(
-                    maxHeight: _isVertical ? double.infinity : 128),
+                    maxHeight: _isVertical ? double.infinity : 128,
+                  ),
             child: hasChartData
                 ? TimeChart(
                     chartData: chartData.points,
                     chartLabels: chartData.labels,
                   )
                 : task.totalTimeMillis == 0
-                    ? const Center(child: Text('Sin tiempo registrado'))
-                    : const SizedBox.shrink(),
+                ? const Center(child: Text('Sin tiempo registrado'))
+                : const SizedBox.shrink(),
           ),
         );
       },
@@ -464,10 +473,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
         if (pickTime != null) {
           updateTodayTime(
-            Duration(
-              hours: pickTime.hour,
-              minutes: pickTime.minute,
-            ),
+            Duration(hours: pickTime.hour, minutes: pickTime.minute),
           );
         }
       },
@@ -512,10 +518,7 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
         if (pickTime != null) {
           updateEstimatedTime(
-            Duration(
-              hours: pickTime.hour,
-              minutes: pickTime.minute,
-            ),
+            Duration(hours: pickTime.hour, minutes: pickTime.minute),
           );
         }
       },

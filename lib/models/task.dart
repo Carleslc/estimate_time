@@ -57,9 +57,17 @@ class Task {
   /// Historial de tiempo por día
   final timeHistory = IsarLinks<TimeEntry>();
 
+  /// Primer tiempo diario registrado
+  @ignore
+  TimeEntry? get firstTimeEntry => timeHistory.firstOrNull;
+
   /// Último tiempo diario registrado
   @ignore
   TimeEntry? get lastTimeEntry => timeHistory.lastOrNull;
+
+  /// Tiempo de inicio de la tarea
+  @ignore
+  DateTime? get startTime => firstTimeEntry?.date;
 
   /// Tiempo registrado hoy
   @ignore
@@ -130,8 +138,10 @@ class Task {
   /// Calcular desviación
   void _updateDeviation() {
     if (_estimatedTimeMillis != null) {
-      _progressEstimation =
-          calculateProgressEstimation(_totalTimeMillis, _estimatedTimeMillis!);
+      _progressEstimation = calculateProgressEstimation(
+        _totalTimeMillis,
+        _estimatedTimeMillis!,
+      );
       _deviation = _progressEstimation - 100;
     }
   }

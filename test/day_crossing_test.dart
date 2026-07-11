@@ -141,6 +141,41 @@ void main() {
     provider.dispose();
   });
 
+  test('editar el tiempo de hoy actualiza el historial y el gráfico', () async {
+    final provider = TaskProvider(isarService);
+    await provider.loadTasks();
+
+    final task = await provider.createTask('Tarea', '', null, null);
+
+    // Simula que la tarea ha estado corriendo 10 minutos hoy
+    task.isRunning = true;
+    task.lastUpdated = DateTime.now().subtract(const Duration(minutes: 10));
+    await provider.pauseTimer(task);
+
+    provider.updateTaskChartData(task);
+
+    // Edita el tiempo registrado hoy (diálogo del tiempo de hoy)
+    await provider.setTodayTimeDuration(task, const Duration(minutes: 45));
+
+    const int editedMillis = 45 * Duration.millisecondsPerMinute;
+
+    expect(task.todayTimeMillis, editedMillis);
+    expect(task.totalTimeMillis, editedMillis);
+
+    // La entrada del historial debe reflejar el nuevo valor
+    // (usado al reconstruir el gráfico, p. ej. al cerrarse el diálogo)
+    expect(sortedEntries(task).last.milliseconds, editedMillis);
+
+    provider.updateTaskChartData(task);
+
+    final chartData = provider.getChartDataForTask(task.id);
+    expect(chartData, isNotNull);
+    expect(chartData!.points.last.minutes, 45.0,
+        reason: 'El gráfico debe mostrar el tiempo editado en la barra de hoy');
+
+    provider.dispose();
+  });
+
   test('setTodayTime invalida el todayTimeEntry de un día anterior', () async {
     final provider = TaskProvider(isarService);
     await provider.loadTasks();

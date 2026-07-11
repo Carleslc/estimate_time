@@ -92,8 +92,10 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> _loadActiveTasks() async {
     final isar = await _isarService.db;
-    final dbActiveTasks =
-        await isar.tasks.filter().archivedEqualTo(false).findAll();
+    final dbActiveTasks = await isar.tasks
+        .filter()
+        .archivedEqualTo(false)
+        .findAll();
     await _updateTasksList(_tasks, dbActiveTasks);
     _sortedTasksValid = false;
   }
@@ -105,8 +107,10 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> _loadArchivedTasks() async {
     final isar = await _isarService.db;
-    final dbArchivedTasks =
-        await isar.tasks.filter().archivedEqualTo(true).findAll();
+    final dbArchivedTasks = await isar.tasks
+        .filter()
+        .archivedEqualTo(true)
+        .findAll();
     await _updateTasksList(_archivedTasks, dbArchivedTasks);
     _sortedArchivedTasksValid = false;
   }
@@ -287,8 +291,9 @@ class TaskProvider with ChangeNotifier {
     }
 
     // Actualizar tiempo
-    final (DateTime now, int elapsedMillis) =
-        task.updateElapsedTime(roundToSecond: roundToSecond);
+    final (DateTime now, int elapsedMillis) = task.updateElapsedTime(
+      roundToSecond: roundToSecond,
+    );
 
     // Actualizar historial de tiempo
     await _updateTimeEntry(task, now, elapsedMillis, roundToSecond);
@@ -301,8 +306,9 @@ class TaskProvider with ChangeNotifier {
     DateTime lastDateTime = task.lastUpdated;
 
     // Actualizar tiempo
-    final (DateTime now, int totalElapsedMillis) =
-        task.updateElapsedTime(roundToSecond: roundToSecond);
+    final (DateTime now, int totalElapsedMillis) = task.updateElapsedTime(
+      roundToSecond: roundToSecond,
+    );
 
     // Reloj del sistema atrasado ?
     final bool reverse = now.isBefore(lastDateTime);
@@ -321,18 +327,14 @@ class TaskProvider with ChangeNotifier {
       // Calcula el tiempo transcurrido en ese día
       // lastDateTime <= now: +(endOfDay - lastDateTime)
       // now < lastDateTime (reverse): -(lastDateTime - startOfDay)
-      Duration elapsedDayTime =
-          (reverse ? startOfDay : endOfDay).difference(lastDateTime);
+      Duration elapsedDayTime = (reverse ? startOfDay : endOfDay).difference(
+        lastDateTime,
+      );
 
       int elapsedDayMillis = elapsedDayTime.inMilliseconds;
 
       // Actualiza el tiempo de ese día
-      await _updateTimeEntry(
-        task,
-        startOfDay,
-        elapsedDayMillis,
-        roundToSecond,
-      );
+      await _updateTimeEntry(task, startOfDay, elapsedDayMillis, roundToSecond);
 
       // Resta el tiempo actualizado de este día al tiempo restante
       remainingElapsedMillis -= elapsedDayMillis;
@@ -396,7 +398,8 @@ class TaskProvider with ChangeNotifier {
   Future<void> setTodayTimeDuration(Task task, Duration duration) async {
     await task.timeHistory.load();
 
-    TimeEntry? timeEntry = task.todayTimeEntry ?? task.lastTimeEntry;
+    // Instancia de la entrada de hoy dentro de timeHistory
+    TimeEntry? timeEntry = task.lastTimeEntry;
 
     final now = DateTime.now();
 
@@ -458,14 +461,18 @@ class TaskProvider with ChangeNotifier {
     if (timeEntry.day.isAfter(now.subtract(const Duration(days: 7)))) {
       final chartData = getChartDataForTask(task.id);
       if (chartData != null) {
-        chartData.points.add(ChartPoint(
-          dayIndex: chartData.points.length,
-          minutes: timeEntry.duration.totalMinutes,
-        ));
-        chartData.labels.add(ChartLabel(
-          label: '${timeEntry.date.day}/${timeEntry.date.month}',
-          value: timeEntry.day,
-        ));
+        chartData.points.add(
+          ChartPoint(
+            dayIndex: chartData.points.length,
+            minutes: timeEntry.duration.totalMinutes,
+          ),
+        );
+        chartData.labels.add(
+          ChartLabel(
+            label: '${timeEntry.date.day}/${timeEntry.date.month}',
+            value: timeEntry.day,
+          ),
+        );
         // Emitir los nuevos datos
         _emitChartData(task.id);
       }
@@ -501,8 +508,9 @@ class TaskProvider with ChangeNotifier {
       return ChartLabel(label: '${e.date.day}/${e.date.month}', value: e.day);
     }).toList();
 
-    final points =
-        recentEntries.asMap().entries.map((MapEntry<int, TimeEntry> e) {
+    final points = recentEntries.asMap().entries.map((
+      MapEntry<int, TimeEntry> e,
+    ) {
       return ChartPoint(
         dayIndex: e.key,
         minutes: e.value.duration.totalMinutes,
@@ -510,16 +518,10 @@ class TaskProvider with ChangeNotifier {
     }).toList();
 
     // Emitir datos del gráfico
-    _taskChartData[task.id] = ChartData(
-      points: points,
-      labels: labels,
-    );
+    _taskChartData[task.id] = ChartData(points: points, labels: labels);
     _emitChartData(task.id);
 
-    log(
-      enabled: false,
-      '${task.title} updateTaskChartData ${DateTime.now()}',
-    );
+    log(enabled: false, '${task.title} updateTaskChartData ${DateTime.now()}');
   }
 
   /// Obtén los datos del gráfico de una tarea
@@ -559,8 +561,8 @@ class TaskProvider with ChangeNotifier {
     // Actualiza todayTime, invalidándolo si es de un día anterior
     task.todayTimeEntry =
         lastTimeEntry != null && lastTimeEntry.date.isSameDay(now)
-            ? lastTimeEntry
-            : null;
+        ? lastTimeEntry
+        : null;
   }
 
   Future<void> archiveTask(Task task) {
@@ -640,8 +642,9 @@ class TaskProvider with ChangeNotifier {
       final isar = await _isarService.db;
       await isar.writeTxn(() async {
         // Historial de tiempo
-        await isar.timeEntries
-            .deleteAll(timeHistory.map((timeEntry) => timeEntry.id).toList());
+        await isar.timeEntries.deleteAll(
+          timeHistory.map((timeEntry) => timeEntry.id).toList(),
+        );
         // Tarea
         await isar.tasks.delete(task.id);
       });
@@ -673,8 +676,9 @@ class TaskProvider with ChangeNotifier {
 
       // Restaurar la referencia al proyecto
       if (linkedProject != null) {
-        final Project? linkedProjectInstance =
-            await isar.projects.get(linkedProject.id);
+        final Project? linkedProjectInstance = await isar.projects.get(
+          linkedProject.id,
+        );
         if (linkedProjectInstance != null) {
           restoredTask.project.value = linkedProjectInstance;
         }
